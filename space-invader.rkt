@@ -61,6 +61,10 @@
                        (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20))
                        SPACESHIP-DIR-INIT
                        MAX-LIVES))
+(define SPACESHIP-DEAD (make-spaceship 
+                       (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20))
+                       SPACESHIP-DIR-INIT
+                       0))
 
 ;; Deconstructor Template:
 ;; spaceship-fn: Spaceship -> ???
@@ -468,6 +472,14 @@
                (make-spaceship (make-posn (- 450 25) 200) 'right MAX-LIVES))
               (make-spaceship (make-posn (- 450 15) 200) 'right MAX-LIVES))
 
+(define (spaceship-world world)
+  (move-spaceship
+    (make-spaceship (spaceship-position (world-spaceship world))
+                  (spaceship-direction (world-spaceship world))
+                  (if (spaceship-is-hit? (world-spaceship world) (world-ibullets world))
+                    (- (spaceship-lives (world-spaceship world)) 1)
+                    (spaceship-lives (world-spaceship world))))))
+
 ;;;; Signature
 ;; move-sbullets: SBullets -> SBullets
 
@@ -669,7 +681,7 @@
                 (filter-sbullets-and-invaders-to-be-removed 
                  (move-sbullets (world-sbullets world))
                  (world-invaders world)))
-               (move-spaceship (world-spaceship world))
+               (spaceship-world world)
                (remove-sbullets-or-invaders-after-hit
                 (move-sbullets (world-sbullets world))
                 (filter-sbullets-and-invaders-to-be-removed 
@@ -966,8 +978,7 @@
 ;;          false otherwise
 
 (define (end-game? world)
-  (or (spaceship-is-hit? (world-spaceship world) (world-ibullets world))
-      (empty? (world-invaders world))))
+  (= (spaceship-lives (world-spaceship world)) 0))
 
 ;;;; Tests
 (check-expect (end-game? WORLD-INIT) #false)
@@ -977,13 +988,10 @@
 (define POSN-BOTTOM-MID (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20)))
 (define BULLETS-SPACESHIP (cons POSN-BOTTOM-MID empty))
 (define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-MID empty empty))
-(define WORLD-END (make-world INVADERS-4-9 
-                              (make-spaceship (make-posn 10 10) 'left MAX-LIVES)
-                              (list (make-posn 0 0))
-                              (list (make-posn 9 9))))
+(define WORLD-END (make-world INVADERS-4-9 SPACESHIP-DEAD empty empty))
 
-; (big-bang WORLD-INIT
-;           (to-draw draw-world)
-;           (on-tick world-step 0.1)
-;           (on-key key-handler)
-;           (stop-when end-game?))
+(big-bang WORLD-INIT
+          (to-draw draw-world)
+          (on-tick world-step 0.1)
+          (on-key key-handler)
+          (stop-when end-game?))
