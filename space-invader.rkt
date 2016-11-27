@@ -33,6 +33,7 @@
 (define SPACESHIP-W 20)
 (define SPACESHIP-RECT (rectangle SPACESHIP-L SPACESHIP-W 'solid "black"))
 (define SPACESHIP-DIR-INIT 'right)
+(define MAX-LIVES 3)
 
 
 ;; A Direction is one of
@@ -49,22 +50,24 @@
 
 
 ;;;; Data Definition
-(define-struct spaceship [position direction])
+(define-struct spaceship [position direction lives])
 
 ;; Constructor Template:
-;; A Spaceship is a (make-spaceship Posn Direction)
+;; A Spaceship is a (make-spaceship Posn Direction Natural)
 ;; INTERP: represents a spaceship on the canvas
 
 ;; Examples
 (define SPACESHIP-MID (make-spaceship 
                        (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20))
-                       SPACESHIP-DIR-INIT))
+                       SPACESHIP-DIR-INIT
+                       MAX-LIVES))
 
 ;; Deconstructor Template:
 ;; spaceship-fn: Spaceship -> ???
 #; (define (spaceship-fn spaceship)
      ... (posn-fn (spaceship-position spaceship)) ...
-     ... (spaceship-direction spaceship) ... )
+     ... (spaceship-direction spaceship) ... 
+     ... (spaceship-lives spaceship) ... )
 
 ;;;; Data Definitions:
 ;; An Invader is a Posn
@@ -186,7 +189,7 @@
 (define BULLET-250-66 POSN-250-66)
 (define BULLET-265-65 POSN-265-65)
 (define BULLET-266-65 POSN-266-65)
-(define SPACESHIP-300-10-left (make-spaceship (make-posn 300 10) 'left))
+(define SPACESHIP-300-10-left (make-spaceship (make-posn 300 10) 'left MAX-LIVES))
 (define WORLD-TEST 
   (make-world (list POSN-50-100) SPACESHIP-300-10-left 
               (list POSN-50-40) (list POSN-250-50)))
@@ -199,10 +202,6 @@
 ;; GIVEN: a natural number representing the number of columns
 ;; RETURNS: the appropriate x coordinate value for the first invader in a row
 
-;;;; Examples
-;; (first-x 9) => 25
-
-;;;; Function Definition
 (define (first-x cols)
   (/ (- CANVAS-WIDTH (* (- cols 1) 2 INVADER-LENGTH)) 2))
 
@@ -217,10 +216,6 @@
 ;;        a natural number representing the number of columns
 ;; RETURNS: a list of invaders assigned with appropriate posns
 
-;;;; Examples
-;; (invader-cons-col 10 10 2) => (list (make-posn 10 10) (make-posn 60 10))
-
-;;;; Function Definition
 (define (invader-cons-col x y cols)
   (cond
     [(= cols 0)	empty]
@@ -241,12 +236,6 @@
 ;; GIVEN: a y coordinate value, number of rows and number of columns
 ;; RETURNS: a list of invaders assigned with appropriate posns
 
-;;;; Examples
-;; (invader-cons-row 10 2 2) =>
-;; (list (make-posn 200 10) (make-posn 250 10) 
-;;       (make-posn 200 45) (make-posn 250 45))
-
-;;;; Function Definition
 (define (invader-cons-row y rows cols)
   (cond
     [(= rows 0) empty]
@@ -288,12 +277,6 @@
 ;; GIVEN: a list of invaders and an image
 ;; RETURNS: a new image with the invaders on the given image
 
-;;;; Examples
-;; (draw-invaders INVADERS-1 BACKGROUND) => 
-;;   (place-image INVADER-RECT 50 40
-;;       (place-image INVADER-RECT 250 50 BACKGROUND))
-
-;;;; Function Definition
 (define (draw-invaders invaders img)
   (draw-lopsn invaders img INVADER-RECT))
 
@@ -309,15 +292,6 @@
 ;; GIVEN: a spaceship and an image
 ;; RETURNS: a new image that draws the spaceship on the given image 
 
-;;;; Examples
-;; (draw-spaceship SPACESHIP-MID BACKGROUND) =>
-;;  (place-image SPACESHIP-RECT 
-;;    (/ CANVAS-WIDTH 2)
-;;    (- CANVAS-HEIGHT 20)
-;;    BACKGROUND)
-
-
-;;;; Function Definition
 (define (draw-spaceship spaceship img)
   (place-image
    SPACESHIP-RECT
@@ -340,12 +314,6 @@
 ;; RETURNS: a new image that draws the list of 
 ;;          spaceship bullets on the given image
 
-;;;; Examples
-;; (draw-ibullets LoPSN-1 BACKGROUND) => 
-;;   (place-image BULLET-RED 50 100
-;;       (place-image BULLET-RED 50 200 BACKGROUND))
-
-;;;; Function Definition
 (define (draw-sbullets sbullets img)
   (draw-lopsn sbullets img BULLET-RED))
 
@@ -363,12 +331,6 @@
 ;; RETURNS: a new image that draws the list of 
 ;;          invader bullets on the given image
 
-;;;; Examples
-;; (draw-ibullets LoPSN-1 BACKGROUND) => 
-;;   (place-image BULLET-BLK 50 100
-;;       (place-image BULLET-BLK 50 200 BACKGROUND))
-
-;;;; Function Definition
 (define (draw-ibullets ibullets img)
   (draw-lopsn ibullets img BULLET-BLK))
 
@@ -386,15 +348,6 @@
 ;; GIVEN: a world 
 ;; RETURNS: an image representation of the given world 
 
-;;;; Examples
-;; (draw-world WORLD-TEST) => 
-;;   (place-image INVADER-RECT 50 100
-;;     (place-image SPACESHIP-RECT 300 10
-;;       (place-image BULLET-RED 50 40
-;;         (place-image BULLET-BLK 250 50 BACKGROUND))))
-;; 
-
-;;;; Function Definition
 (define (draw-world world)
   (draw-invaders (world-invaders world)
                  (draw-spaceship (world-spaceship world)
@@ -418,24 +371,16 @@
 ;; GIVEN: a spaceship
 ;; RETURNS: true if the spaceship reaches the left corner, false otherwise
 
-;;;; Examples
-;; (spaceship-reach-left-corner? 
-;;   (make-spaceship (make-posn 15 200) 'left)) => #true
-;; (spaceship-reach-left-corner? 
-;;   (make-spaceship (make-posn (+ 15 1) 200) 'left)) => #false
-
-
-;;;; Function Definition
 (define (spaceship-reach-left-corner? spaceship)
   (<= (- (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L 2)) 0))
 
 ;;;; Tests
 (check-expect 
  (spaceship-reach-left-corner? 
-  (make-spaceship (make-posn 15 200) 'left)) #true)
+  (make-spaceship (make-posn 15 200) 'left MAX-LIVES)) #true)
 (check-expect 
  (spaceship-reach-left-corner? 
-  (make-spaceship (make-posn (+ 15 1) 200) 'left)) #false)
+  (make-spaceship (make-posn (+ 15 1) 200) 'left MAX-LIVES)) #false)
 
 ;;;; Signature
 ;; spaceship-reach-right-corner?: Spaceship -> Boolean
@@ -444,13 +389,6 @@
 ;; GIVEN: a spaceship
 ;; RETURNS: true if the spaceship reaches the right corner, false otherwise
 
-;;;; Examples
-;; (spaceship-reach-right-corner? 
-;;   (make-spaceship (make-posn (- 450 15) 200) 'left)) #true)
-;; (spaceship-reach-right-corner? 
-;;   (make-spaceship (make-posn (- 450 15 1) 200) 'left)) #false)
-
-;;;; Function Definition
 (define (spaceship-reach-right-corner? spaceship)
   (>= (+ (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L 2)) 
       CANVAS-WIDTH))
@@ -458,10 +396,10 @@
 ;;;; Tests
 (check-expect 
  (spaceship-reach-right-corner? 
-  (make-spaceship (make-posn (- 450 15) 200) 'left)) #true)
+  (make-spaceship (make-posn (- 450 15) 200) 'left MAX-LIVES)) #true)
 (check-expect 
  (spaceship-reach-right-corner? 
-  (make-spaceship (make-posn (- 450 15 1) 200) 'left)) #false)
+  (make-spaceship (make-posn (- 450 15 1) 200) 'left MAX-LIVES)) #false)
 
 
 ;;;; Signature
@@ -472,21 +410,6 @@
 ;; RETURNS: true if the spaceship reaches the left or right corner, 
 ;;          false otherwise
 
-;;;; Examples
-;; (check-expect
-;;   (spaceship-reach-corner? 
-;;     (make-spaceship (make-posn 15 200) 'left)) #true)
-;; (check-expect 
-;;   (spaceship-reach-corner? 
-;;     (make-spaceship (make-posn (+ 15 1) 200) 'left)) #false)
-;; (check-expect 
-;;   (spaceship-reach-corner? 
-;;     (make-spaceship (make-posn (- 450 15) 200) 'left)) #true)
-;; (check-expect 
-;;   (spaceship-reach-corner? 
-;;    (make-spaceship (make-posn (- 450 15 1) 200) 'left)) #false)
-
-;;;; Function Definition
 (define (spaceship-reach-corner? spaceship)
   (or 
    (spaceship-reach-left-corner?  spaceship)
@@ -495,16 +418,16 @@
 ;;;; Tests
 (check-expect 
  (spaceship-reach-corner? 
-  (make-spaceship (make-posn 15 200) 'left)) #true)
+  (make-spaceship (make-posn 15 200) 'left MAX-LIVES)) #true)
 (check-expect 
  (spaceship-reach-corner? 
-  (make-spaceship (make-posn (+ 15 1) 200) 'left)) #false)
+  (make-spaceship (make-posn (+ 15 1) 200) 'left MAX-LIVES)) #false)
 (check-expect 
  (spaceship-reach-corner? 
-  (make-spaceship (make-posn (- 450 15) 200) 'left)) #true)
+  (make-spaceship (make-posn (- 450 15) 200) 'left MAX-LIVES)) #true)
 (check-expect 
  (spaceship-reach-corner? 
-  (make-spaceship (make-posn (- 450 15 1) 200) 'left)) #false)
+  (make-spaceship (make-posn (- 450 15 1) 200) 'left MAX-LIVES)) #false)
 
 
 ;;;; Signature
@@ -515,21 +438,6 @@
 ;; RETURNS: the spaceship after it moves by one unit distance in the
 ;;          correct direction, or the original spaceship if it reaches corner
 
-;;;; Examples
-;; (move-spaceship
-;;   (make-spaceship (make-posn 15 200) 'left)) => 
-;;       (make-spaceship (make-posn 15 200) 'left)
-;; (move-spaceship
-;;   (make-spaceship (make-posn 25 200) 'left)) => 
-;;       (make-spaceship (make-posn 15 200) 'left)
-;; (move-spaceship
-;;   (make-spaceship (make-posn (- 450 15) 200) 'right)) => 
-;;       (make-spaceship (make-posn (- 450 15) 200) 'right)
-;; (move-spaceship
-;;   (make-spaceship (make-posn (- 450 25) 200) 'right)) => 
-;;       (make-spaceship (make-posn (- 450 15) 200) 'right)
-
-;;;; Function Definition
 (define (move-spaceship spaceship)
   (cond
     [(spaceship-reach-corner? spaceship)  spaceship]
@@ -537,26 +445,28 @@
      (make-spaceship
       (make-posn (- (posn-x (spaceship-position spaceship)) UNIT)
                  (posn-y (spaceship-position spaceship)))
-      'left)]
+      'left
+      (spaceship-lives spaceship))]
     [(symbol=? (spaceship-direction spaceship) 'right)
      (make-spaceship
       (make-posn (+ (posn-x (spaceship-position spaceship)) UNIT)
                  (posn-y (spaceship-position spaceship)))
-      'right)]))
+      'right
+      (spaceship-lives spaceship))]))
 
 ;;;; Tests
 (check-expect (move-spaceship
-               (make-spaceship (make-posn 15 200) 'left))
-              (make-spaceship (make-posn 15 200) 'left))
+               (make-spaceship (make-posn 15 200) 'left MAX-LIVES))
+              (make-spaceship (make-posn 15 200) 'left MAX-LIVES))
 (check-expect (move-spaceship
-               (make-spaceship (make-posn 25 200) 'left))
-              (make-spaceship (make-posn 15 200) 'left))
+               (make-spaceship (make-posn 25 200) 'left MAX-LIVES))
+              (make-spaceship (make-posn 15 200) 'left MAX-LIVES))
 (check-expect (move-spaceship
-               (make-spaceship (make-posn (- 450 15) 200) 'right))
-              (make-spaceship (make-posn (- 450 15) 200) 'right))
+               (make-spaceship (make-posn (- 450 15) 200) 'right MAX-LIVES))
+              (make-spaceship (make-posn (- 450 15) 200) 'right MAX-LIVES))
 (check-expect (move-spaceship
-               (make-spaceship (make-posn (- 450 25) 200) 'right))
-              (make-spaceship (make-posn (- 450 15) 200) 'right))
+               (make-spaceship (make-posn (- 450 25) 200) 'right MAX-LIVES))
+              (make-spaceship (make-posn (- 450 15) 200) 'right MAX-LIVES))
 
 ;;;; Signature
 ;; move-sbullets: SBullets -> SBullets
@@ -566,12 +476,6 @@
 ;; RETURNS: a list of spaceship bullets after they move by one unit distance 
 ;;          in the correct direction
 
-;;;; Examples
-;; (move-sbullets
-;;   (list (make-posn 25 200) (make-posn 25 190))) => 
-;;     (list (make-posn 25 190) (make-posn 25 180))
-
-;;;; Function Definition
 (define (move-sbullets sbullets)
   (cond
     [(empty? sbullets) empty]
@@ -598,12 +502,6 @@
 ;; RETURNS: a list of invader bullets after they move by one unit distance 
 ;;          in the correct direction
 
-;;;; Examples
-;; (move-ibullets
-;;   (list (make-posn 25 200) (make-posn 25 190))) => 
-;;     (list (make-posn 25 210) (make-posn 25 200))
-
-;;;; Function Definition
 (define (move-ibullets ibullets)
   (cond
     [(empty? ibullets) empty]
@@ -634,52 +532,45 @@
                                        ROW-NUM-INVADER COL-NUM-INVADER))
 (define WORLD-TEST-KH-1-BFR 
   (make-world INVADERS-4-9 ;; spaceship reach right corner
-              (make-spaceship (make-posn (- 450 15) 200) 'left)
+              (make-spaceship (make-posn (- 450 15) 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-1-AFT 
   (make-world INVADERS-4-9 
-              (make-spaceship (make-posn (- 450 15 10) 200) 'left)
+              (make-spaceship (make-posn (- 450 15 10) 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-2-BFR 
   (make-world INVADERS-4-9 ;; spaceship reach left corner
-              (make-spaceship (make-posn 15 200) 'left)
+              (make-spaceship (make-posn 15 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-2-AFT 
   (make-world INVADERS-4-9 
-              (make-spaceship (make-posn (+ 15 10) 200) 'right)
+              (make-spaceship (make-posn (+ 15 10) 200) 'right MAX-LIVES)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 
 (define WORLD-TEST-KH-3-BFR 
   (make-world INVADERS-4-9
-              (make-spaceship (make-posn (- 450 10) 200) 'left)
+              (make-spaceship (make-posn (- 450 10) 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-3-AFT 
   (make-world INVADERS-4-9 
-              (make-spaceship (make-posn (- 450 10) 200) 'right)
+              (make-spaceship (make-posn (- 450 10) 200) 'right MAX-LIVES)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-4-BFR 
   (make-world INVADERS-4-9 
-              (make-spaceship (make-posn 0 0) 'right)
+              (make-spaceship (make-posn 0 0) 'right MAX-LIVES)
               empty
               empty))
 (define WORLD-TEST-KH-4-AFT 
   (make-world INVADERS-4-9 
-              (make-spaceship (make-posn 0 0) 'right)
+              (make-spaceship (make-posn 0 0) 'right MAX-LIVES)
               (list (make-posn 0 0))
               empty))
-
-;;;; Examples
-;; (key-handler WORLD-TEST-KH-1-BFR "left") => WORLD-TEST-KH-1-AFT
-;; (key-handler WORLD-TEST-KH-2-BFR "right") => WORLD-TEST-KH-2-AFT
-;; (key-handler WORLD-TEST-KH-3-BFR "right") => WORLD-TEST-KH-3-AFT
-;; (key-handler WORLD-TEST-KH-3-BFR "up") => WORLD-TEST-KH-3-BFR
-;; (key-handler WORLD-TEST-KH-4-BFR " ") => WORLD-TEST-KH-4-AFT
 
 
 ;;>Not sure why you need two different conditions just for the arrow key left
@@ -705,7 +596,8 @@
                                       (world-spaceship world))) UNIT)
                              (posn-y (spaceship-position 
                                       (world-spaceship world))))
-                  'right)
+                  'right
+                  (spaceship-lives (world-spaceship world)))
                  (world-sbullets world)
                  (world-ibullets world))]
     [(and (spaceship-reach-right-corner? (world-spaceship world))
@@ -717,7 +609,8 @@
                                         (world-spaceship world))) UNIT)
                              (posn-y (spaceship-position 
                                         (world-spaceship world))))
-                  'left)
+                  'left
+                  (spaceship-lives (world-spaceship world)))
                  (world-sbullets world)
                  (world-ibullets world))]
     [(or (key=? ke "left")
@@ -725,7 +618,8 @@
      (make-world (world-invaders world)
                  (make-spaceship 
                   (spaceship-position (world-spaceship world))
-                  (string->symbol ke))
+                  (string->symbol ke)
+                  (spaceship-lives (world-spaceship world)))
                  (world-sbullets world)
                  (world-ibullets world))]
     [(and (key=? ke " ") 
@@ -794,11 +688,6 @@
 ;; GIVEN: two posns
 ;; RETURNS: true if the two posns have the same coordinates, false otherwise
 
-;;;; Examples
-;; (posn=? POSN-50-100 POSN-50-100) => #true
-;; (posn=? POSN-50-100 POSN-50-200) => #false
-
-;;;; Function Definition
 (define (posn=? p1 p2)
   (and (= (posn-x p1) (posn-x p2))
        (= (posn-y p1) (posn-y p2))))
@@ -807,24 +696,8 @@
 (check-expect (posn=? POSN-50-100 POSN-50-100) #true)
 (check-expect (posn=? POSN-50-100 POSN-50-200) #false)
 
-
-;;;; Signature
-;; sbullet-hits-invaders?: Bullet Invaders -> Boolean
-
-;;;; Purpose
-;; GIVEN: a spaceshit bullet and a list of invaders
-;; RETURNS: true if the bullet given hits any invader in the list, 
-;;          false otherwise
-
-;;;; Examples
-;; (sbullet-hits-invaders? BULLET-250-65 INVADERS-1) => #true
-;; (sbullet-hits-invaders? BULLET-250-66 INVADERS-1) => #false
-;; (sbullet-hits-invaders? BULLET-265-65 INVADERS-1) => #true
-;; (sbullet-hits-invaders? BULLET-266-65 INVADERS-1) => #false
-
 ;;;; Signature
 ;; sbullet-over-invader? Posn Posn -> Boolean
-
 (define (sbullet-over-invader? sbullet invader)
   (and
      (< (- (posn-y sbullet)  BULLET-RADIUS)
@@ -834,7 +707,14 @@
      (< (- (posn-x sbullet)  BULLET-RADIUS)
         (+ (posn-x invader) (/ INVADER-LENGTH 2)))))
 
-;;;; Function Definition
+;;;; Signature
+;; sbullet-hits-invaders?: Bullet Invaders -> Boolean
+
+;;;; Purpose
+;; GIVEN: a spaceshit bullet and a list of invaders
+;; RETURNS: true if the bullet given hits any invader in the list, 
+;;          false otherwise
+
 (define (sbullet-hits-invaders? sbullet invaders)
   (ormap
     ;;;; Posn -> Boolean
@@ -868,10 +748,6 @@
 ;; RETURNS: a single list containing spaceship bullets and invaders
 ;;          to be removed
 
-;;;; Examples
-;; (filter-sbullets-and-invaders-to-be-removed LoPSN-3 LoPSN-4) => LoPSN-5
-
-;;;; Function Definition
 (define (filter-sbullets-and-invaders-to-be-removed sbullets invaders)
   (append
     ;;;; Posn -> Boolean
@@ -893,12 +769,6 @@
 ;; GIVEN: a list of posns and a posn
 ;; RETURNS: true if the given posn is in the list, false otherwise
 
-;;;; Examples
-;; (lop-contains-posn? LoPSN-2 POSN-50-300) => #true
-;; (lop-contains-posn? LoPSN-2 POSN-50-200) => #true
-;; (lop-contains-posn? LoPSN-2 POSN-266-65) => #false
-
-;;;; Function Definition
 (define (lop-contains-posn? lop posn)
          ;;;; Posn -> Boolean
   (ormap (lambda (p) (posn=? p posn)) lop))
@@ -921,10 +791,6 @@
 ;;        a list spaceship bullets and invaders to be removed
 ;;; RETURNS: a list of posns (bullets or invaders) after removals
 
-;;;; Examples
-;; (remove-sbullets-or-invaders-after-hit LoPSN-3 LoPSN-5) (list POSN-1)
-
-;;;; Function Definition
 (define (remove-sbullets-or-invaders-after-hit
          sbullets-or-invaders s-and-i-to-be-removed)
   (filter
@@ -949,13 +815,6 @@
 (define BULLET-10-LO-IN (make-posn 10 602))
 (define BULLET-10-LO-OUT (make-posn 10 603))
 
-;;;; Examples
-;; (bullet-out-of-bounds? BULLET-10-UP-IN) => #false
-;; (bullet-out-of-bounds? BULLET-10-UP-OUT) => #true
-;; (bullet-out-of-bounds? BULLET-10-LO-IN) => #false
-;; (bullet-out-of-bounds? BULLET-10-LO-OUT) => #true
-
-;;;; Function Definition
 (define (bullet-out-of-bounds? bullet)
   (or (<= (+ (posn-y bullet) BULLET-RADIUS) 0)
       (>= (- (posn-y bullet) BULLET-RADIUS) CANVAS-HEIGHT)))
@@ -977,15 +836,6 @@
                           BULLET-10-LO-IN BULLET-10-LO-OUT))
 (define BULLETS-AFT (list BULLET-10-UP-IN BULLET-10-LO-IN))
 
-;;;; Examples
-;; (remove-bullets-out-of-bounds 
-;;    BULLETS-BFR) =>
-;;         (list BULLET-10-UP-IN BULLET-10-LO-IN))
-;; (remove-bullets-out-of-bounds (list BULLET-10-LO-IN)) 
-;;                            => (list BULLET-10-LO-IN)
-;; (remove-bullets-out-of-bounds (list BULLET-10-LO-OUT)) => empty)
-
-;;;; Function Definition
 (define (remove-bullets-out-of-bounds bullets)
            ;;;; Posn -> Boolean
   (filter (lambda (b) (not (bullet-out-of-bounds? b))) bullets))
@@ -1005,16 +855,12 @@
 ;;          out of bounds are removed
 
 (define WORLD-TEST-BFR (make-world empty 
-                        (make-spaceship POSN-2 'left) 
+                        (make-spaceship POSN-2 'left MAX-LIVES) 
                           BULLETS-BFR BULLETS-BFR))
 (define WORLD-TEST-AFT (make-world empty 
-                        (make-spaceship POSN-2 'left) 
+                        (make-spaceship POSN-2 'left MAX-LIVES) 
                           BULLETS-AFT BULLETS-AFT))
 
-;;;; Examples
-;; (remove-bullets-out-of-bounds-world WORLD-TEST-BFR) => WORLD-TEST-AFT
-
-;;;; Function Definition
 (define (remove-bullets-out-of-bounds-world world)
   (make-world
    (world-invaders world)
@@ -1034,11 +880,6 @@
 ;;        the user wants to pull out
 ;; RETURNS: the invader in the list with that index
 
-;;;; Examples
-;; (invader-at LoPSN-2 2) => POSN-50-300
-;; (invader-at LoPSN-2 5) => empty
-
-;;;; Function Definition
 (define (invader-at invaders index)
   (cond
     [(empty? invaders) empty]
@@ -1056,13 +897,6 @@
 ;; GIVEN: a natural number, a list of invader bullets and a list of invaders
 ;; RETURNS: a new list of invader bullets with newly-fired bullets added
 
-;;;; Examples
-;; (invaders-fire 15 BULLETS-AFT INVADERS-4-9) => BULLETS-AFT
-;; (invaders-fire 0 BULLETS-AFT INVADERS-4-9) => BULLETS-AFT
-;; (invaders-fire 1 BULLETS-AFT INVADERS-4-9) =>
-;;              (cons (invader-at INVADERS-4-9 (random 36)) BULLETS-AFT)
-
-;;;; Function Definition
 (define (invaders-fire amount ibullets invaders)
   (cond
     [(or 
@@ -1090,11 +924,6 @@
 ;; RETURNS: true if that bullet on the canvas hits the spaceship, 
 ;;          false otherwise
 
-;;;; Examples
-;; (bullet-hits-spaceship? SPACESHIP-MID POSN-BOTTOM-MID) => #true
-;; (bullet-hits-spaceship? SPACESHIP-MID (make-posn 400 490)) => #false
-
-;;;; Function Definition
 (define (bullet-hits-spaceship? spaceship bullet)
   (and 
    (> (+ (posn-x bullet) BULLET-RADIUS) 
@@ -1117,11 +946,6 @@
 ;; RETURNS: true if any bullet on the canvas hits the spaceship,
 ;;          false otherwise
 
-;;;; Examples
-;; (spaceship-is-hit? SPACESHIP-MID (world-ibullets WORLD-INIT)) => #false
-;; (spaceship-is-hit? SPACESHIP-MID (list POSN-BOTTOM-MID POSN-50-300)) #true
-
-;;;; Function Definition
 (define (spaceship-is-hit? spaceship ibullets)
   (ormap (lambda (i)  ;;;; Posn -> Boolean
             (bullet-hits-spaceship? spaceship i))
@@ -1141,11 +965,6 @@
 ;; RETURNS: true if the spaceship is hit by any bullets from invaders,
 ;;          false otherwise
 
-;;;; Examples
-;; (end-game? WORLD-INIT) => #false
-;; (end-game? WORLD-END)  => #true
-
-;;;; Function Definition
 (define (end-game? world)
   (or (spaceship-is-hit? (world-spaceship world) (world-ibullets world))
       (empty? (world-invaders world))))
@@ -1159,12 +978,12 @@
 (define BULLETS-SPACESHIP (cons POSN-BOTTOM-MID empty))
 (define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-MID empty empty))
 (define WORLD-END (make-world INVADERS-4-9 
-                              (make-spaceship (make-posn 10 10) 'left)
+                              (make-spaceship (make-posn 10 10) 'left MAX-LIVES)
                               (list (make-posn 0 0))
                               (list (make-posn 9 9))))
 
-(big-bang WORLD-INIT
-          (to-draw draw-world)
-          (on-tick world-step 0.1)
-          (on-key key-handler)
-          (stop-when end-game?))
+; (big-bang WORLD-INIT
+;           (to-draw draw-world)
+;           (on-tick world-step 0.1)
+;           (on-key key-handler)
+;           (stop-when end-game?))
