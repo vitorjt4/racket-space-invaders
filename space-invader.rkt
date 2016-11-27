@@ -15,7 +15,7 @@
 (require 2htdp/universe)
 
 (define UNIT 10)
-(define ROW-NUM-INVADER 3)
+(define ROW-NUM-INVADER 4)
 (define COL-NUM-INVADER 9)
 (define BULLET-RADIUS 3)
 (define BULLET-RED (circle BULLET-RADIUS 'solid "red"))
@@ -626,46 +626,46 @@
 ;; RETURNS: a new world with spaceship or its bullets updated
 ;;          according to the key event
 
-(define INVADERS-3-9 (invader-cons-row (* 2 GAP-BETWEEN-ROWS) 
+(define INVADERS-4-9 (invader-cons-row (* 2 GAP-BETWEEN-ROWS) 
                                        ROW-NUM-INVADER COL-NUM-INVADER))
 (define WORLD-TEST-KH-1-BFR 
-  (make-world INVADERS-3-9 ;; spaceship reach right corner
+  (make-world INVADERS-4-9 ;; spaceship reach right corner
               (make-spaceship (make-posn (- 450 15) 200) 'left)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-1-AFT 
-  (make-world INVADERS-3-9 
+  (make-world INVADERS-4-9 
               (make-spaceship (make-posn (- 450 15 10) 200) 'left)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-2-BFR 
-  (make-world INVADERS-3-9 ;; spaceship reach left corner
+  (make-world INVADERS-4-9 ;; spaceship reach left corner
               (make-spaceship (make-posn 15 200) 'left)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-2-AFT 
-  (make-world INVADERS-3-9 
+  (make-world INVADERS-4-9 
               (make-spaceship (make-posn (+ 15 10) 200) 'right)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 
 (define WORLD-TEST-KH-3-BFR 
-  (make-world INVADERS-3-9
+  (make-world INVADERS-4-9
               (make-spaceship (make-posn (- 450 10) 200) 'left)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-3-AFT 
-  (make-world INVADERS-3-9 
+  (make-world INVADERS-4-9 
               (make-spaceship (make-posn (- 450 10) 200) 'right)
               (list (make-posn 0 0))
               (list (make-posn 9 9))))
 (define WORLD-TEST-KH-4-BFR 
-  (make-world INVADERS-3-9 
+  (make-world INVADERS-4-9 
               (make-spaceship (make-posn 0 0) 'right)
               empty
               empty))
 (define WORLD-TEST-KH-4-AFT 
-  (make-world INVADERS-3-9 
+  (make-world INVADERS-4-9 
               (make-spaceship (make-posn 0 0) 'right)
               (list (make-posn 0 0))
               empty))
@@ -1105,10 +1105,10 @@
 ;; RETURNS: a new list of invader bullets with newly-fired bullets added
 
 ;;;; Examples
-;; (invaders-fire 15 BULLETS-AFT INVADERS-3-9) => BULLETS-AFT
-;; (invaders-fire 0 BULLETS-AFT INVADERS-3-9) => BULLETS-AFT
-;; (invaders-fire 1 BULLETS-AFT INVADERS-3-9) =>
-;;              (cons (invader-at INVADERS-3-9 (random 27)) BULLETS-AFT)
+;; (invaders-fire 15 BULLETS-AFT INVADERS-4-9) => BULLETS-AFT
+;; (invaders-fire 0 BULLETS-AFT INVADERS-4-9) => BULLETS-AFT
+;; (invaders-fire 1 BULLETS-AFT INVADERS-4-9) =>
+;;              (cons (invader-at INVADERS-4-9 (random 36)) BULLETS-AFT)
 
 ;;;; Function Definition
 (define (invaders-fire amount ibullets invaders)
@@ -1125,10 +1125,10 @@
        invaders))]))
 
 ;;;; Tests
-(check-expect (invaders-fire 15 BULLETS-AFT INVADERS-3-9) BULLETS-AFT)
-(check-expect (invaders-fire 0 BULLETS-AFT INVADERS-3-9) BULLETS-AFT)
-(check-random (invaders-fire 1 BULLETS-AFT INVADERS-3-9)
-              (cons (invader-at INVADERS-3-9 (random 27)) BULLETS-AFT))
+(check-expect (invaders-fire 15 BULLETS-AFT INVADERS-4-9) BULLETS-AFT)
+(check-expect (invaders-fire 0 BULLETS-AFT INVADERS-4-9) BULLETS-AFT)
+(check-random (invaders-fire 1 BULLETS-AFT INVADERS-4-9)
+              (cons (invader-at INVADERS-4-9 (random 36)) BULLETS-AFT))
 
 ;;;; Signature
 ;; bullet-hits-spaceship?: Spaceship Bullet -> Boolean
@@ -1206,14 +1206,14 @@
 
 (define POSN-BOTTOM-MID (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20)))
 (define BULLETS-SPACESHIP (cons POSN-BOTTOM-MID empty))
-(define WORLD-INIT (make-world INVADERS-3-9 SPACESHIP-MID empty empty))
-(define WORLD-END (make-world INVADERS-3-9 
+(define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-MID empty empty))
+(define WORLD-END (make-world INVADERS-4-9 
                               (make-spaceship (make-posn 10 10) 'left)
                               (list (make-posn 0 0))
                               (list (make-posn 9 9))))
 
-; (big-bang WORLD-INIT
-;           (to-draw draw-world)
-;           (on-tick world-step 0.25)
-;           (on-key key-handler)
-;           (stop-when end-game?))
+(big-bang WORLD-INIT
+          (to-draw draw-world)
+          (on-tick world-step 0.1)
+          (on-key key-handler)
+          (stop-when end-game?))
