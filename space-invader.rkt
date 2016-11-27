@@ -9,6 +9,7 @@
 
 ;;>-1 You have some magical values such as 1, 'left, ect. floating around.
 ;;>Might want to clean them up.
+;; TODO: Fixing magic values
 
 
 (require 2htdp/image)
@@ -683,6 +684,12 @@
 ;;>replace them. I mean it's your design so you might have a better explanation
 ;;>than me. 
 
+;; - Because when the spaceship reaches the left or right corner, 
+;; - I'll have to explicitly ask it to move if key pressed, or
+;; - it will always stay still because that's what I ask it to do 
+;; - in the move-spaceship function. Not sure if there is a better
+;; - way to do this.
+
 ;;;; Function Definition
 (define (key-handler world ke)
   (cond 
@@ -739,7 +746,16 @@
 
 ;;;; Purpose
 ;; GIVEN: the current world
-;; RETURNS: the next world after one clock tick
+;; RETURNS: the next world after one clock tick -
+;;   1. If any of the spaceship or invader bullets go out of bounds,
+;;      they will be removed from the canvas.
+;;   2. If a spaceship bullet hits an invader, 
+;;      it needs to be removed from the canvas.
+;;   2. For the spaceship, it will be moved to the next world-step position
+;;   3. Any of the invaders that are hit by the spaceship
+;;      bullets will be removed from the canvas
+;;   4. For all other spaceship and invader bullets, 
+;;      they just move to the next world-step position.
 
 ;;>-2 You need to be more specific about RETURNS? what kinds of next world
 ;;>should I expect? how will each game's objects behave?
@@ -947,7 +963,7 @@
 
 
 ;;;; Signature
-;; remove-sbullets-or-invaders-after-hit: LoP LoP -> LoP
+;; remove-sbullets-or-invaders-after-hit: BulletsOrInvaders BulletsOrInvaders -> BulletsOrInvaders
 
 ;;>-1 I am a little confused. Should LoP be BulletsOrInvaders instead? based
 ;;>on what you described for the Purpose? 
