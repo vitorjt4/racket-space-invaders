@@ -1,6 +1,6 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-beginner-reader.ss" "lang")((modname space-invader) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+#reader(lib "htdp-intermediate-lambda-reader.ss" "lang")((modname space-invader) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
 ;;>Total: 85/91
 
 ;;>Overall, your design is very detail-oriented and easy to follow.
@@ -81,7 +81,7 @@
 
 ;; A ListOfPosns (LoP) is one of
 ;; - empty
-;; - (cons Posn LoP) 
+;; - (cons Posn LoP)
 ;; INTERP: represents a list of posns
 
 ;;;; Examples:
@@ -97,9 +97,7 @@
                     ... (lop-fn (rest lop) )...]))
 
 
-;; A ListOfInvaders (LoI) is one of
-;; - empty
-;; - (cons Invader LoI) 
+;; A ListOfInvaders (LoI) is a LoF<Posn>
 ;; INTERP: represents a list of invaders on the canvas
 
 ;;;; Examples:
@@ -114,9 +112,7 @@
        [(cons? loi) ... (posn-fn (first loi)) ... 
                     ... (loi-fn (rest loi) )...]))
 
-;; A ListOfBullets (LoB) is one of
-;; - empty
-;; - (cons Bullet LoB) 
+;; A ListOfBullets (LoB) is a LoF<Posn>
 ;; INTERP: represents a list of bullets on the canvas
 
 ;;;; Examples:
@@ -131,16 +127,16 @@
        [(cons? lob) ... (posn-fn (first lob)) ... 
                     ... (lob-fn (rest lob) )...]))
 
-;; An SBullets (LoSB) is a list of SBullet
+;; An SBullets (LoSB) is a LoF<Posn>
 ;; represents a list of bullets from the spaceship
 
-;; An IBullets (LoIB) is a list of IBullet
+;; An IBullets (LoIB) is a LoF<Posn>
 ;; represents a list of bullets from invaders
 
 (define-struct world [invaders spaceship sbullets ibullets])
 
 ;; Constructor Template:
-;; A World is a (make-world LoI Spaceship LoB LoB)
+;; A World is a (make-world LoF<Posn> Spaceship LoF<Posn> LoF<Posn>)
 ;; INTERP: invaders represents invaders in the game
 ;;         spaceship represents a spaceship in the game
 ;;         sbullets represents bullets from the spaceship in the game
@@ -214,7 +210,7 @@
 (check-expect (first-x 9) 25)
 
 ;;;; Signature
-;; invader-cons-col: Real Real Natural -> LoI
+;; invader-cons-col: Real Real Natural -> LoF<Posn>
 
 ;;;; Purpose
 ;; GIVEN: an x and a y coordinate value and 
@@ -239,7 +235,7 @@
 
 
 ;;;; Signature
-;; invader-cons-row: Real Natural Natural-> LoI
+;; invader-cons-row: Real Natural Natural-> LoF<Posn>
 
 ;;;; Purpose
 ;; GIVEN: a y coordinate value, number of rows and number of columns
@@ -267,9 +263,26 @@
               (list (make-posn 200 10) (make-posn 250 10) 
                     (make-posn 200 45) (make-posn 250 45)))
 
+;;;; draw-lopsn: LoP Image Image -> Image
+(define (draw-lopsn posns img shape-img)
+  (local (
+    ;;;; draw-posn: Posn Image -> Image
+    (define (draw-posn posn image)
+      (place-image 
+           shape-img
+           (posn-x posn)
+           (posn-y posn)
+           image)))
+    (foldl draw-posn img posns)))
+
+;;;; Tests
+(check-expect (draw-lopsn INVADERS-1 BACKGROUND INVADER-RECT)
+              (place-image INVADER-RECT 50 40
+                           (place-image INVADER-RECT 250 50 BACKGROUND)))
+
 
 ;;;; Signature
-;; draw-invaders: LoI -> Image
+;; draw-invaders: LoF<Posn> Image -> Image
 
 ;;;; Purpose
 ;; GIVEN: a list of invaders and an image
@@ -282,13 +295,7 @@
 
 ;;;; Function Definition
 (define (draw-invaders invaders img)
-  (cond
-    [(empty? invaders) img]
-    [else (place-image 
-           INVADER-RECT
-           (posn-x (first invaders))
-           (posn-y (first invaders))
-           (draw-invaders (rest invaders) img))]))
+  (draw-lopsn invaders img INVADER-RECT))
 
 ;;;; Tests
 (check-expect (draw-invaders INVADERS-1 BACKGROUND)
@@ -340,13 +347,7 @@
 
 ;;;; Function Definition
 (define (draw-sbullets sbullets img)
-  (cond
-    [(empty? sbullets) img]
-    [else (place-image 
-           BULLET-RED
-           (posn-x (first sbullets))
-           (posn-y (first sbullets))
-           (draw-sbullets (rest sbullets) img))]))
+  (draw-lopsn sbullets img BULLET-RED))
 
 ;;;; Tests
 (check-expect (draw-sbullets LoPSN-1 BACKGROUND)
@@ -369,13 +370,7 @@
 
 ;;;; Function Definition
 (define (draw-ibullets ibullets img)
-  (cond
-    [(empty? ibullets) img]
-    [else (place-image 
-           BULLET-BLK
-           (posn-x (first ibullets))
-           (posn-y (first ibullets))
-           (draw-ibullets (rest ibullets) img))]))
+  (draw-lopsn ibullets img BULLET-BLK))
 
 ;;;; Tests
 (check-expect (draw-ibullets LoPSN-1 BACKGROUND)
@@ -580,10 +575,14 @@
 (define (move-sbullets sbullets)
   (cond
     [(empty? sbullets) empty]
-    [else 
-     (cons (make-posn (posn-x (first sbullets))
-                      (- (posn-y (first sbullets)) UNIT))
-           (move-sbullets (rest sbullets)))]))
+    [else
+      (local (
+             ;;;; Signature
+             ;; move-sbullet : LoF<Posn> -> LoF<Posn>
+             (define (move-sbullet sbullet)
+                (make-posn (posn-x sbullet)
+                      (- (posn-y sbullet) UNIT))))
+      (map move-sbullet sbullets))]))
 
 ;;;; Tests
 (check-expect (move-sbullets
@@ -609,9 +608,13 @@
   (cond
     [(empty? ibullets) empty]
     [else 
-     (cons (make-posn (posn-x (first ibullets))
-                      (+ (posn-y (first ibullets)) UNIT))
-           (move-ibullets (rest ibullets)))]))
+      (local (
+             ;;;; Signature
+             ;; move-ibullet : LoF<Posn> -> LoF<Posn>
+             (define (move-ibullet ibullet)
+                (make-posn (posn-x ibullet)
+                      (+ (posn-y ibullet) UNIT))))
+      (map move-ibullet ibullets))]))
 
 ;;;; Tests
 (check-expect (move-ibullets
@@ -804,29 +807,6 @@
 (check-expect (posn=? POSN-50-100 POSN-50-100) #true)
 (check-expect (posn=? POSN-50-100 POSN-50-200) #false)
 
-;;;; Signature
-;; remove-posn-in-lop: Posn LoP -> LoP
-
-;;;; Purpose
-;; GIVEN: a list of posns and a posn
-;; RETURNS: a new list of posns with the given posn removed from the list 
-
-;;;; Examples
-;; (remove-posn-in-lop POSN-50-300 LoPSN-2) => LoPSN-1
-;; (remove-posn-in-lop POSN-50-300 LoPSN-1) => LoPSN-1
-
-;;;; Function Definition
-(define (remove-posn-in-lop posn lop)
-  (cond
-    [(empty? lop) empty]
-    [(posn=? posn (first lop))
-     (rest lop)]
-    [else
-     (cons (first lop) (remove-posn-in-lop posn (rest lop)))]))
-
-;;;; Tests
-(check-expect (remove-posn-in-lop POSN-50-300 LoPSN-2) LoPSN-1)
-(check-expect (remove-posn-in-lop POSN-50-300 LoPSN-1) LoPSN-1)
 
 ;;;; Signature
 ;; sbullet-hits-invaders?: Bullet Invaders -> Boolean
@@ -842,18 +822,25 @@
 ;; (sbullet-hits-invaders? BULLET-265-65 INVADERS-1) => #true
 ;; (sbullet-hits-invaders? BULLET-266-65 INVADERS-1) => #false
 
+;;;; Signature
+;; sbullet-over-invader? Posn Posn -> Boolean
+
+(define (sbullet-over-invader? sbullet invader)
+  (and
+     (< (- (posn-y sbullet)  BULLET-RADIUS)
+        (+ (posn-y invader) (/ INVADER-LENGTH 2)))
+     (> (+ (posn-x sbullet)  BULLET-RADIUS)
+        (- (posn-x invader) (/ INVADER-LENGTH 2)))
+     (< (- (posn-x sbullet)  BULLET-RADIUS)
+        (+ (posn-x invader) (/ INVADER-LENGTH 2)))))
+
 ;;;; Function Definition
 (define (sbullet-hits-invaders? sbullet invaders)
-  (and (cons? invaders)
-       (or 
-        (and
-         (< (- (posn-y sbullet)  BULLET-RADIUS)
-            (+ (posn-y (first invaders)) (/ INVADER-LENGTH 2)))
-         (> (+ (posn-x sbullet)  BULLET-RADIUS)
-            (- (posn-x (first invaders)) (/ INVADER-LENGTH 2)))
-         (< (- (posn-x sbullet)  BULLET-RADIUS)
-            (+ (posn-x (first invaders)) (/ INVADER-LENGTH 2))))
-        (sbullet-hits-invaders? sbullet (rest invaders)))))
+  (ormap
+    ;;;; Posn -> Boolean
+    (lambda (invader) 
+      (sbullet-over-invader? sbullet invader))
+    invaders))
 
 ;;;; Tests
 (check-expect (sbullet-hits-invaders? BULLET-250-65 INVADERS-1) #true)
@@ -861,54 +848,20 @@
 (check-expect (sbullet-hits-invaders? BULLET-265-65 INVADERS-1) #true)
 (check-expect (sbullet-hits-invaders? BULLET-266-65 INVADERS-1) #false)
 
-;;;; Signature
-;; invader-that-gets-hit: Bullet Invaders -> Invader
 
-;;;; Purpose
-;; GIVEN: a spaceshit bullet and a list of invaders
-;; RETURNS: the invader that gets hit
-
-;;;; Examples
-;; (invader-that-gets-hit BULLET-250-65 INVADERS-1) => POSN-250-50
-;; (invader-that-gets-hit BULLET-250-66 INVADERS-1) => empty
-;; (invader-that-gets-hit BULLET-265-65 INVADERS-1) => POSN-250-50
-
-;;>-1 Repetition code. Again, I do not mind you have repetition for
-;;>the case of spaceship/invaders' bullets since they move in opposite
-;;>direction. Here however, the body of the above fuction
-;;>sbullet-hits-invaders? and the one below are almost identical
-;;>in term of functionality. Thus you might need helper functions
-;;>to reduce that junk. 
-
-
-;;;; Function Definition
-(define (invader-that-gets-hit sbullet invaders)
-  (cond
-    [(empty? invaders) empty]
-    [(and 
-      (< (- (posn-y sbullet)  BULLET-RADIUS)
-         (+ (posn-y (first invaders)) (/ INVADER-LENGTH 2)))
-      (> (+ (posn-x sbullet)  BULLET-RADIUS)
-         (- (posn-x (first invaders)) (/ INVADER-LENGTH 2)))
-      (< (- (posn-x sbullet)  BULLET-RADIUS)
-         (+ (posn-x (first invaders)) (/ INVADER-LENGTH 2))))
-     (first invaders)]
-    [else
-     (invader-that-gets-hit sbullet (rest invaders))]))
-
-;;;; Tests
-(check-expect (invader-that-gets-hit BULLET-250-65 INVADERS-1) POSN-250-50)
-(check-expect (invader-that-gets-hit BULLET-250-66 INVADERS-1) empty)
-(check-expect (invader-that-gets-hit BULLET-265-65 INVADERS-1) POSN-250-50)
-
+(define (invader-gets-hit? sbullets invader)
+  (ormap 
+    ;;;; Posn -> Boolean
+    (lambda (sbullet)
+      (sbullet-over-invader? sbullet invader))
+    sbullets))
 
 ;;;; Data Definition
-;; A BulletsOrInvaders is a LoP
+;; A BulletsOrInvaders is a LoF<Posn>
 ;; INTERP: represents a list containing bullets or (and) invaders
 
 ;;;; Signature
-;; filter-sbullets-and-invaders-to-be-removed: 
-;;                        SBullets Invaders -> BulletsOrInvaders
+;; filter-sbullets-and-invaders-to-be-removed: LoF<Posn> LoF<Posn> -> LoF<Posn>
 
 ;;;; Purpose
 ;; GIVEN: a list of spaceship bullets and a list of invaders
@@ -920,26 +873,21 @@
 
 ;;;; Function Definition
 (define (filter-sbullets-and-invaders-to-be-removed sbullets invaders)
-  (cond
-    [(empty? sbullets) empty]
-    [(sbullet-hits-invaders? (first sbullets) invaders)
-     (cons (first sbullets)
-           (cons (invader-that-gets-hit (first sbullets) invaders)
-                 (filter-sbullets-and-invaders-to-be-removed 
-                  (rest sbullets) invaders)))]
-    [else (filter-sbullets-and-invaders-to-be-removed 
-           (rest sbullets) invaders)]))
+  (append
+    ;;;; Posn -> Boolean
+    (filter (lambda (s) (sbullet-hits-invaders? s invaders)) sbullets)
+    (filter (lambda (i) (invader-gets-hit? sbullets i)) invaders)))
 
 (define LoPSN-3 (list POSN-1 POSN-2 POSN-3 POSN-4))
 (define LoPSN-4 (list POSN-2 POSN-3 POSN-4 POSN-5))
-(define LoPSN-5 (list POSN-2 POSN-2 POSN-3 POSN-3 POSN-4 POSN-4))
+(define LoPSN-5 (list POSN-2 POSN-3 POSN-4 POSN-2 POSN-3 POSN-4))
 
 ;;;; Tests
 (check-expect (filter-sbullets-and-invaders-to-be-removed LoPSN-3 LoPSN-4) 
               LoPSN-5)
 
 ;;;; Signature
-;; lop-contains-posn?: LoP -> Posn
+;; lop-contains-posn?: LoF<Posn> Posn -> Boolean
 
 ;;;; Purpose
 ;; GIVEN: a list of posns and a posn
@@ -952,9 +900,8 @@
 
 ;;;; Function Definition
 (define (lop-contains-posn? lop posn)
-  (and (cons? lop)
-       (or (posn=? posn (first lop))
-           (lop-contains-posn? (rest lop) posn))))
+         ;;;; Posn -> Boolean
+  (ormap (lambda (p) (posn=? p posn)) lop))
 
 ;;;; Tests
 (check-expect (lop-contains-posn? LoPSN-2 POSN-50-300) #true)
@@ -979,19 +926,12 @@
 
 ;;;; Function Definition
 (define (remove-sbullets-or-invaders-after-hit
-         sbullets-or-invaders sbullets-and-invaders-to-be-removed)
-  (cond
-    [(empty? sbullets-and-invaders-to-be-removed) sbullets-or-invaders]
-    [(lop-contains-posn? sbullets-or-invaders 
-                         (first sbullets-and-invaders-to-be-removed))
-     (remove-sbullets-or-invaders-after-hit 
-      (remove-posn-in-lop 
-       (first sbullets-and-invaders-to-be-removed) sbullets-or-invaders)
-      (rest sbullets-and-invaders-to-be-removed))]
-    [else
-     (remove-sbullets-or-invaders-after-hit
-      sbullets-or-invaders
-      (rest sbullets-and-invaders-to-be-removed))]))
+         sbullets-or-invaders s-and-i-to-be-removed)
+  (filter
+    ;;;; Posn -> Boolean
+    (lambda (s-or-i)
+      (not (lop-contains-posn? s-and-i-to-be-removed s-or-i))) 
+    sbullets-or-invaders))
 
 ;;;; Tests
 (check-expect (remove-sbullets-or-invaders-after-hit LoPSN-3 LoPSN-5) 
@@ -1047,12 +987,8 @@
 
 ;;;; Function Definition
 (define (remove-bullets-out-of-bounds bullets)
-  (cond
-    [(empty? bullets) empty]
-    [(bullet-out-of-bounds? (first bullets))
-     (remove-bullets-out-of-bounds (rest bullets))]
-    [else
-     (cons (first bullets) (remove-bullets-out-of-bounds (rest bullets)))]))
+           ;;;; Posn -> Boolean
+  (filter (lambda (b) (not (bullet-out-of-bounds? b))) bullets))
 
 ;;;; Tests
 (check-expect (remove-bullets-out-of-bounds BULLETS-BFR) BULLETS-AFT)
@@ -1187,10 +1123,9 @@
 
 ;;;; Function Definition
 (define (spaceship-is-hit? spaceship ibullets)
-  (and (cons? ibullets)
-       (or 
-        (bullet-hits-spaceship? spaceship (first ibullets))
-        (spaceship-is-hit? spaceship (rest ibullets)))))
+  (ormap (lambda (i)  ;;;; Posn -> Boolean
+            (bullet-hits-spaceship? spaceship i))
+         ibullets))
 
 ;;;; Tests
 (check-expect (spaceship-is-hit? SPACESHIP-MID 
