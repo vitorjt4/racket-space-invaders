@@ -32,7 +32,7 @@
 (define SPACESHIP-L 30)
 (define SPACESHIP-W 20)
 (define SPACESHIP-RECT (rectangle SPACESHIP-L SPACESHIP-W 'solid "black"))
-(define SPACESHIP-DIR-INIT 'right)
+(define SPACESHIP-DIR-INIT 'left)
 (define MAX-LIVES 3)
 
 
@@ -57,7 +57,7 @@
 ;; INTERP: represents a spaceship on the canvas
 
 ;; Examples
-(define SPACESHIP-MID (make-spaceship 
+(define SPACESHIP-INIT (make-spaceship 
                        (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20))
                        SPACESHIP-DIR-INIT
                        MAX-LIVES))
@@ -151,7 +151,7 @@
 
 ;; Examples
 (define WORLD-0
-  (make-world LOI1 SPACESHIP-MID LOB1 LOB1))
+  (make-world LOI1 SPACESHIP-INIT LOB1 LOB1))
 ;; Deconstructor Template:
 ;; world-fn: World -> ???
 #; (define (world-fn world)
@@ -316,7 +316,7 @@
    img))
 
 ;;;; Tests
-(check-expect (draw-spaceship SPACESHIP-MID BACKGROUND)
+(check-expect (draw-spaceship SPACESHIP-INIT BACKGROUND)
               (place-image SPACESHIP-RECT 
                            (/ CANVAS-WIDTH 2)
                            (- CANVAS-HEIGHT 20)
@@ -492,11 +492,12 @@
 ;;;; spaceship-step: World -> Spaceship
 (define (spaceship-step world)
   (local ((define moved-spaceship (move-spaceship (world-spaceship world))))
-    (make-spaceship (spaceship-position moved-spaceship)
-                  (spaceship-direction moved-spaceship)
-                  (if (spaceship-is-hit? moved-spaceship (world-ibullets world))
-                    (- (spaceship-lives moved-spaceship) 1)
-                    (spaceship-lives moved-spaceship)))))
+    (if (spaceship-is-hit? moved-spaceship (world-ibullets world))
+      (make-spaceship  ;; if hit, re-init the spaceship with a life less
+        (spaceship-position  SPACESHIP-INIT)
+        (spaceship-direction SPACESHIP-INIT)
+        (- (spaceship-lives moved-spaceship) 1))
+      moved-spaceship)))
 
 ;;;; Signature
 ;; move-sbullets: SBullets -> SBullets
@@ -971,8 +972,8 @@
       (- (posn-y (spaceship-position spaceship)) (/ SPACESHIP-W 2)))))
 
 ;;;; Tests
-(check-expect (bullet-hits-spaceship? SPACESHIP-MID POSN-BOTTOM-MID) #true)
-(check-expect (bullet-hits-spaceship? SPACESHIP-MID 
+(check-expect (bullet-hits-spaceship? SPACESHIP-INIT POSN-BOTTOM-MID) #true)
+(check-expect (bullet-hits-spaceship? SPACESHIP-INIT 
                                       (make-posn 400 490)) #false)
 
 ;;;; Spaceship LoF<Posn> -> LoF<Posn>
@@ -993,10 +994,14 @@
          ibullets))
 
 ;;;; Tests
-(check-expect (spaceship-is-hit? SPACESHIP-MID 
+(check-expect (spaceship-is-hit? SPACESHIP-INIT 
                                  (world-ibullets WORLD-INIT)) #false)
-(check-expect (spaceship-is-hit? SPACESHIP-MID 
+(check-expect (spaceship-is-hit? SPACESHIP-INIT 
                                  (list POSN-50-300 POSN-BOTTOM-MID)) #true)
+
+;;;; spaceship-init: Spaceship -> Spaceship
+(define (spaceship-init spaceship)
+  SPACESHIP-INIT)
 
 ;;;; Signature
 ;; end-game?: World -> Boolean
@@ -1016,7 +1021,7 @@
 
 (define POSN-BOTTOM-MID (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20)))
 (define BULLETS-SPACESHIP (cons POSN-BOTTOM-MID empty))
-(define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-MID empty empty))
+(define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-INIT empty empty))
 (define WORLD-END (make-world INVADERS-4-9 SPACESHIP-DEAD empty empty))
 
 (big-bang WORLD-INIT
