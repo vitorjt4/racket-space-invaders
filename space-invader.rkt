@@ -38,7 +38,6 @@
 (define UNIT-SCORE 5)
 (define TICK-ZERO 0)
 
-
 ;; A Direction is one of
 ;; - 'left
 ;; - 'right
@@ -1063,6 +1062,15 @@
 (define (spaceship-init spaceship)
   SPACESHIP-INIT)
 
+;;;; invaders-reach-btm?: LoF<Invader> -> Boolean
+
+(define (invaders-reach-btm? invaders)
+  (ormap 
+    ;;;; Invader -> Boolean
+    (lambda (i)
+      (>= (posn-y i) BTM-OF-FIELD)) 
+    invaders))
+
 ;;;; Signature
 ;; end-game?: World -> Boolean
 
@@ -1071,8 +1079,12 @@
 ;; RETURNS: true if the spaceship is hit by any bullets from invaders,
 ;;          false otherwise
 
+(define BTM-OF-FIELD (+ (posn-y (spaceship-position SPACESHIP-INIT))
+                        (/ SPACESHIP-W 2)))
+
 (define (end-game? world)
-  (= (spaceship-lives (world-spaceship world)) 0))
+  (or (= (spaceship-lives (world-spaceship world)) 0)
+      (invaders-reach-btm? (world-invaders world))))
 
 ;;;; Tests
 (check-expect (end-game? WORLD-INIT) #false)
