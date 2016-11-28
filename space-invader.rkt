@@ -256,8 +256,20 @@
               (list (make-posn 200 10) (make-posn 250 10) 
                     (make-posn 200 45) (make-posn 250 45)))
 
+
+;;;; draw-lives: Spaceship -> Image
+(define BOTTOM-RIGHT-CORNER (make-posn (- CANVAS-WIDTH  30)
+                                       (- CANVAS-HEIGHT 30)))
+(define (draw-lives spaceship)
+  (place-image
+    (text (number->string (spaceship-lives spaceship)) 28 "red")
+    (posn-x BOTTOM-RIGHT-CORNER)
+    (posn-y BOTTOM-RIGHT-CORNER)
+    BACKGROUND))
+
+
 ;;;; draw-lopsn: LoP Image Image -> Image
-(define (draw-lopsn posns img shape-img)
+(define (draw-lopsn posns base-img shape-img)
   (local (
     ;;;; draw-posn: Posn Image -> Image
     (define (draw-posn posn image)
@@ -266,7 +278,7 @@
            (posn-x posn)
            (posn-y posn)
            image)))
-    (foldl draw-posn img posns)))
+    (foldl draw-posn base-img posns)))
 
 ;;;; Tests
 (check-expect (draw-lopsn INVADERS-1 BACKGROUND INVADER-RECT)
@@ -358,14 +370,19 @@
                                  (draw-sbullets (world-sbullets world) 
                                                 (draw-ibullets 
                                                  (world-ibullets world) 
-                                                 BACKGROUND)))))
+                                                 (draw-lives (world-spaceship world)))))))
 
 ;;;; Tests
 (check-expect (draw-world WORLD-TEST)
   (place-image INVADER-RECT 50 100
      (place-image SPACESHIP-RECT 300 10
         (place-image BULLET-RED 50 40
-          (place-image BULLET-BLK 250 50 BACKGROUND)))))
+          (place-image BULLET-BLK 250 50 
+            (place-image
+              (text (number->string MAX-LIVES) 28 "red")
+              (posn-x BOTTOM-RIGHT-CORNER)
+              (posn-y BOTTOM-RIGHT-CORNER)
+              BACKGROUND))))))
 
 
 ;;;; Signature
@@ -472,13 +489,14 @@
                (make-spaceship (make-posn (- 450 25) 200) 'right MAX-LIVES))
               (make-spaceship (make-posn (- 450 15) 200) 'right MAX-LIVES))
 
-(define (spaceship-world world)
-  (move-spaceship
-    (make-spaceship (spaceship-position (world-spaceship world))
-                  (spaceship-direction (world-spaceship world))
-                  (if (spaceship-is-hit? (world-spaceship world) (world-ibullets world))
-                    (- (spaceship-lives (world-spaceship world)) 1)
-                    (spaceship-lives (world-spaceship world))))))
+;;;; spaceship-step: World -> Spaceship
+(define (spaceship-step world)
+  (local ((define moved-spaceship (move-spaceship (world-spaceship world))))
+    (make-spaceship (spaceship-position moved-spaceship)
+                  (spaceship-direction moved-spaceship)
+                  (if (spaceship-is-hit? moved-spaceship (world-ibullets world))
+                    (- (spaceship-lives moved-spaceship) 1)
+                    (spaceship-lives moved-spaceship)))))
 
 ;;;; Signature
 ;; move-sbullets: SBullets -> SBullets
@@ -675,23 +693,30 @@
 
 ;;;; Function Definition
 (define (world-step world)
+  (local ((define spaceship
+            (spaceship-step world))
+          (define invaders
+            (world-invaders world))
+          (define remove-lst 
+            (filter-sbullets-and-invaders-to-be-removed 
+                 (move-sbullets (world-sbullets world))
+                 invaders)))
+
   (remove-bullets-out-of-bounds-world
-   (make-world (remove-sbullets-or-invaders-after-hit
-                (world-invaders world)
-                (filter-sbullets-and-invaders-to-be-removed 
-                 (move-sbullets (world-sbullets world))
-                 (world-invaders world)))
-               (spaceship-world world)
-               (remove-sbullets-or-invaders-after-hit
-                (move-sbullets (world-sbullets world))
-                (filter-sbullets-and-invaders-to-be-removed 
-                 (move-sbullets (world-sbullets world))
-                 (world-invaders world)))
-               (move-ibullets
-                (invaders-fire 
-                 (random (length (world-invaders world)))
-                 (world-ibullets world)
-                 (world-invaders world))))))
+     (make-world (remove-sbullets-or-invaders-after-hit
+                    invaders
+                    remove-lst)
+                 spaceship
+                 (remove-sbullets-or-invaders-after-hit
+                    (move-sbullets (world-sbullets world))
+                    remove-lst)
+                (move-ibullets
+                  (remove-ibullet-after-hit
+                    spaceship
+                    (invaders-fire 
+                       (random (length invaders))
+                       (world-ibullets world)
+                       invaders)))))))
 
 ;;;; Signature
 ;; posn=?: Posn Posn -> Boolean
@@ -949,6 +974,10 @@
 (check-expect (bullet-hits-spaceship? SPACESHIP-MID POSN-BOTTOM-MID) #true)
 (check-expect (bullet-hits-spaceship? SPACESHIP-MID 
                                       (make-posn 400 490)) #false)
+
+;;;; Spaceship LoF<Posn> -> LoF<Posn>
+(define (remove-ibullet-after-hit spaceship ibullets)
+  (filter (lambda (i) (not (bullet-hits-spaceship? spaceship i))) ibullets))
 
 ;;;; Signature
 ;; spaceship-is-hit?: Spaceship Bullets -> Boolean
