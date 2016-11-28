@@ -40,6 +40,7 @@
 (define TOP-LEFT (make-posn 20 15))
 ;; the lives of a mothership does not matter in this game
 (define MOMSHIP-RECT (rectangle INVADER-LENGTH INVADER-LENGTH 'solid "purple"))
+(define MOMSHIP-MOVE-LEN 3)
 
 ;; A Direction is one of
 ;; - 'left
@@ -488,6 +489,18 @@
       'right
       (spaceship-lives spaceship))]))
 
+;;;; move-mothership: World -> Spaceship
+(define (move-mothership world)
+  (local ((define mothership (world-mothership world)))
+    (if (>= (world-ticks world) 30)
+      (make-spaceship
+        (make-posn
+          (+ MOMSHIP-MOVE-LEN (posn-x (spaceship-position mothership)))
+          (posn-y (spaceship-position mothership)))
+        (spaceship-direction mothership)
+        (spaceship-lives mothership))
+      mothership)))
+
 ;;;; Tests
 (check-expect (move-spaceship
                (make-spaceship (make-posn 15 200) 'left MAX-LIVES))
@@ -767,7 +780,7 @@
                               invaders
                               invaders-updated)
                 (+ 1 (world-ticks world))
-                (world-mothership world)))))
+                (move-mothership world)))))
 
 ;;;; update-score: Score LoF<Invader> LoF<Invader> -> Score
 (define (update-score old-score invaders-old invaders-new)
