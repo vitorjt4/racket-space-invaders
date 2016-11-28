@@ -264,7 +264,7 @@
 
 
 ;;;; draw-score: World -> Image
-(define TOP-CENTER (make-posn (/ CANVAS-WIDTH 2) 40))
+(define TOP-CENTER (make-posn (/ CANVAS-WIDTH 2) 15))
 
 (define (draw-score score img)
   (place-image
@@ -595,7 +595,7 @@
 ;; RETURNS: a new world with spaceship or its bullets updated
 ;;          according to the key event
 
-(define INVADERS-4-9 (invader-cons-row (* 2 GAP-BETWEEN-ROWS) 
+(define INVADERS-4-9 (invader-cons-row (* 4 GAP-BETWEEN-ROWS) 
                                        ROW-NUM-INVADER COL-NUM-INVADER))
 (define WORLD-TEST-KH-1-BFR 
   (make-world INVADERS-4-9 ;; spaceship reach right corner
