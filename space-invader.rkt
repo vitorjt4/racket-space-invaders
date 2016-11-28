@@ -322,6 +322,14 @@
                            (- CANVAS-HEIGHT 20)
                            BACKGROUND))
 
+;; draw-mothership: Spaceship Image -> Image
+(define (draw-mothership mothership img)
+  (place-image
+   MOMSHIP-RECT
+   (posn-x (spaceship-position mothership))
+   (posn-y (spaceship-position mothership))
+   img))
+
 ;;;; Signature
 ;; draw-sbullets: SBullets Image -> Image
 
@@ -371,7 +379,10 @@
                                                 (draw-ibullets 
                                                  (world-ibullets world) 
                                                  (draw-lives (world-spaceship world)
-                                                  (draw-score (world-score world) BACKGROUND)))))))
+                                                  (draw-score (world-score world)
+                                                    (if (>= (world-ticks world) 30)
+                                                      (draw-mothership (world-mothership world) BACKGROUND)
+                                                      BACKGROUND))))))))
 
 ;;;; Tests
 ;; TODO: fix this test
