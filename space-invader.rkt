@@ -570,6 +570,24 @@
               (list (make-posn 25 210) (make-posn 25 200)))
 
 
+;;;; move-invaders: LoF<Invader> -> LoF<Invader>
+(define (move-invaders invaders)
+  (map
+    ;;;; Invader -> Invader
+    (lambda (i) 
+      (make-posn (posn-x i)
+                 (+ (posn-y i) INVADER-LENGTH)))
+    invaders))
+
+;;;; invaders-step: World -> LoF<Invader>
+(define (invaders-step world)
+  (local ((define ticks (world-ticks world))
+          (define invaders (world-invaders world)))
+  (if (and (not (= 0 ticks))
+           (= 0 (modulo ticks 10)))
+      (move-invaders invaders)
+      invaders)))
+
 ;;;; Signature
 ;; key-handler: World Key-Event -> World
 
@@ -724,7 +742,7 @@
   (local ((define spaceship
             (spaceship-step world))
           (define invaders
-            (world-invaders world))
+            (invaders-step world))
           (define remove-lst 
             (filter-sbullets-and-invaders-to-be-removed 
                  (move-sbullets (world-sbullets world))
