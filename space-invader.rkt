@@ -36,6 +36,7 @@
 (define MAX-LIVES 3)
 (define MIN-SCORE 0)
 (define UNIT-SCORE 5)
+(define TICK-ZERO 0)
 
 
 ;; A Direction is one of
@@ -144,19 +145,20 @@
 
 ;; A Score is a Natural
 ;; represents a list of bullets from invaders
-(define-struct world [invaders spaceship sbullets ibullets score])
+(define-struct world [invaders spaceship sbullets ibullets score ticks])
 
 ;; Constructor Template:
-;; A World is a (make-world LoF<Invader> Spaceship LoF<SBullet> LoF<IBullet> Natural)
+;; A World is a (make-world LoF<Invader> Spaceship LoF<SBullet> LoF<IBullet> Natural Natural)
 ;; INTERP: invaders represents invaders in the game
 ;;         spaceship represents a spaceship in the game
 ;;         sbullets represents bullets from the spaceship in the game
 ;;         ibullets represents bullets from invaders in the game
 ;;         score represents the score of the current game
+;;         ticks represents the ticks of the clock
 
 ;; Examples
 (define WORLD-0
-  (make-world LOI1 SPACESHIP-INIT LOB1 LOB1 MIN-SCORE))
+  (make-world LOI1 SPACESHIP-INIT LOB1 LOB1 MIN-SCORE TICK-ZERO))
 ;; Deconstructor Template:
 ;; world-fn: World -> ???
 #; (define (world-fn world)
@@ -201,7 +203,7 @@
 (define SPACESHIP-300-10-left (make-spaceship (make-posn 300 10) 'left MAX-LIVES))
 (define WORLD-TEST 
   (make-world (list POSN-50-100) SPACESHIP-300-10-left 
-              (list POSN-50-40) (list POSN-250-50) MIN-SCORE))
+              (list POSN-50-40) (list POSN-250-50) MIN-SCORE TICK-ZERO))
 
 
 ;;;; Signature
@@ -582,43 +584,43 @@
   (make-world INVADERS-4-9 ;; spaceship reach right corner
               (make-spaceship (make-posn (- 450 15) 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE))
+              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO))
 (define WORLD-TEST-KH-1-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn (- 450 15 10) 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE))
+              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO))
 (define WORLD-TEST-KH-2-BFR 
   (make-world INVADERS-4-9 ;; spaceship reach left corner
               (make-spaceship (make-posn 15 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE))
+              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO))
 (define WORLD-TEST-KH-2-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn (+ 15 10) 200) 'right MAX-LIVES)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE))
+              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO))
 
 (define WORLD-TEST-KH-3-BFR 
   (make-world INVADERS-4-9
               (make-spaceship (make-posn (- 450 10) 200) 'left MAX-LIVES)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE))
+              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO))
 (define WORLD-TEST-KH-3-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn (- 450 10) 200) 'right MAX-LIVES)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE))
+              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO))
 (define WORLD-TEST-KH-4-BFR 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn 0 0) 'right MAX-LIVES)
               empty
-              empty MIN-SCORE))
+              empty MIN-SCORE TICK-ZERO))
 (define WORLD-TEST-KH-4-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn 0 0) 'right MAX-LIVES)
               (list (make-posn 0 0))
-              empty MIN-SCORE))
+              empty MIN-SCORE TICK-ZERO))
 
 
 ;;>Not sure why you need two different conditions just for the arrow key left
@@ -648,7 +650,8 @@
                   (spaceship-lives (world-spaceship world)))
                  (world-sbullets world)
                  (world-ibullets world)
-                 (world-score world))]
+                 (world-score world)
+                 (world-ticks world))]
     [(and (spaceship-reach-right-corner? (world-spaceship world))
           (key=? ke "left"))
      (make-world (world-invaders world)
@@ -662,7 +665,8 @@
                   (spaceship-lives (world-spaceship world)))
                  (world-sbullets world)
                  (world-ibullets world)
-                 (world-score world))]
+                 (world-score world)
+                 (world-ticks world))]
     [(or (key=? ke "left")
          (key=? ke "right"))
      (make-world (world-invaders world)
@@ -672,7 +676,8 @@
                   (spaceship-lives (world-spaceship world)))
                  (world-sbullets world)
                  (world-ibullets world)
-                 (world-score world))]
+                 (world-score world)
+                 (world-ticks world))]
     [(and (key=? ke " ") 
           (< (length (world-sbullets world)) BULLET-MAX-SPACESHIP))
      (make-world (world-invaders world)
@@ -680,7 +685,8 @@
                  (cons (spaceship-position (world-spaceship world))
                        (world-sbullets world))
                  (world-ibullets world)
-                 (world-score world))]
+                 (world-score world)
+                 (world-ticks world))]
     [else world]))
 
 ;;;; Tests
@@ -743,7 +749,8 @@
                        invaders)))
                 (update-score (world-score world)
                               invaders
-                              invaders-updated)))))
+                              invaders-updated)
+                (+ 1 (world-ticks world))))))
 
 ;;;; update-score: Score LoF<Invader> LoF<Invader> -> Score
 (define (update-score old-score invaders-old invaders-new)
@@ -927,10 +934,10 @@
 
 (define WORLD-TEST-BFR (make-world empty 
                         (make-spaceship POSN-2 'left MAX-LIVES) 
-                          BULLETS-BFR BULLETS-BFR MIN-SCORE))
+                          BULLETS-BFR BULLETS-BFR MIN-SCORE TICK-ZERO))
 (define WORLD-TEST-AFT (make-world empty 
                         (make-spaceship POSN-2 'left MAX-LIVES) 
-                          BULLETS-AFT BULLETS-AFT MIN-SCORE))
+                          BULLETS-AFT BULLETS-AFT MIN-SCORE TICK-ZERO))
 
 (define (remove-bullets-out-of-bounds-world world)
   (make-world
@@ -938,7 +945,8 @@
    (world-spaceship world)
    (remove-bullets-out-of-bounds (world-sbullets world))
    (remove-bullets-out-of-bounds (world-ibullets world))
-   (world-score world)))
+   (world-score world)
+   (world-ticks world)))
 
 ;;;; Tests
 (check-expect (remove-bullets-out-of-bounds-world WORLD-TEST-BFR) 
@@ -1055,8 +1063,8 @@
 
 (define POSN-BOTTOM-MID (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20)))
 (define BULLETS-SPACESHIP (cons POSN-BOTTOM-MID empty))
-(define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-INIT empty empty MIN-SCORE))
-(define WORLD-END (make-world INVADERS-4-9 SPACESHIP-DEAD empty empty MIN-SCORE))
+(define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-INIT empty empty MIN-SCORE TICK-ZERO))
+(define WORLD-END (make-world INVADERS-4-9 SPACESHIP-DEAD empty empty MIN-SCORE TICK-ZERO))
 
 (big-bang WORLD-INIT
           (to-draw draw-world)
