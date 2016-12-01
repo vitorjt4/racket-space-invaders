@@ -38,7 +38,6 @@
 (define UNIT-SCORE 5)
 (define TICK-ZERO 0)
 (define TOP-LEFT (make-posn 20 15))
-;; the lives of a mothership does not matter in this game
 (define MSHIP-RECT (rectangle INVADER-LENGTH INVADER-LENGTH 'solid "purple"))
 (define MSHIP-MOVE-LEN 3)
 (define SCORE-HIT-MSHIP 20)
@@ -72,7 +71,7 @@
                        (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20))
                        SPACESHIP-DIR-INIT
                        0))
-(define MSHIP-INIT (make-spaceship TOP-LEFT 'right 100))
+(define MSHIP-INIT (make-spaceship TOP-LEFT 'right 0))
 
 ;;;; Data Definitions:
 ;; An Invader is a Posn
@@ -248,8 +247,13 @@
               (list (make-posn 200 10) (make-posn 250 10) 
                     (make-posn 200 45) (make-posn 250 45)))
 
+;;;; Signature
+;; draw-score: Natural Image -> Image
 
-;;;; draw-score: World -> Image
+;;;; Purpose
+;; GIVEN: a nutural number and an image
+;; RETURNS: a new image with the score on the given image
+
 (define TOP-CENTER (make-posn (/ CANVAS-WIDTH 2) 15))
 
 (define (draw-score score img)
@@ -259,7 +263,21 @@
     (posn-y TOP-CENTER)
     img))
 
-;;;; draw-lives: Spaceship -> Image
+;;;; Tests
+(check-expect (draw-score 10 BACKGROUND)
+  (place-image (text "10" 20 "black")
+          (posn-x TOP-CENTER)
+          (posn-y TOP-CENTER)
+          BACKGROUND))
+
+
+;;;; Signature
+;;;; draw-lives: Spaceship Image -> Image
+
+;;;; Purpose
+;; GIVEN: a nutural number and an image
+;; RETURNS: a new image with the score on the given image
+
 (define BOTTOM-RIGHT-CORNER (make-posn (- CANVAS-WIDTH  30)
                                        (- CANVAS-HEIGHT 30)))
 (define (draw-lives spaceship img)
@@ -270,7 +288,23 @@
     img))
 
 
-;;;; draw-lopsn: LoP Image Image -> Image
+;;;; Tests
+(check-expect (draw-lives SPACESHIP-DEAD BACKGROUND)
+                (place-image
+                  (text "0" 28 "red")
+                  (posn-x BOTTOM-RIGHT-CORNER)
+                  (posn-y BOTTOM-RIGHT-CORNER)
+                  BACKGROUND))
+
+
+;;;; Signature
+;; draw-lopsn: LoP Image Image -> Image
+
+;;;; Purpose
+;; GIVEN: a list of posns, a base image to be placed on
+;;        and a shape image representing an item we are about to draw
+;; RETURNS: an image with all items drawn on the base image
+
 (define (draw-lopsn posns base-img shape-img)
   (local (
     ;;;; draw-posn: Posn Image -> Image
@@ -324,13 +358,27 @@
                            (- CANVAS-HEIGHT 20)
                            BACKGROUND))
 
+;;;; Signature
 ;; draw-mothership: Spaceship Image -> Image
+
+;;;; Purpose
+;; GIVEN: a mothership and an image
+;; RETURNS: a new image with the mothership drawn on the given image
+
 (define (draw-mothership mothership img)
   (place-image
    MSHIP-RECT
    (posn-x (spaceship-position mothership))
    (posn-y (spaceship-position mothership))
    img))
+
+;;;; Tests
+(check-expect (draw-mothership MSHIP-INIT BACKGROUND)
+                (place-image
+                  MSHIP-RECT
+                  (posn-x TOP-LEFT)
+                  (posn-y TOP-LEFT)
+                  BACKGROUND))
 
 ;;;; Signature
 ;; draw-sbullets: SBullets Image -> Image
@@ -382,9 +430,9 @@
                                                  (world-ibullets world) 
                                                  (draw-lives (world-spaceship world)
                                                   (draw-score (world-score world)
-                                                    (if (>= (world-ticks world) 30)
-                                                      (draw-mothership (world-mothership world) BACKGROUND)
-                                                      BACKGROUND))))))))
+                                                    (if (= 0 (spaceship-lives (world-mothership world)))
+                                                      BACKGROUND
+                                                      (draw-mothership (world-mothership world) BACKGROUND)))))))))
 
 ;;;; Tests
 ;; TODO: fix this test
@@ -492,15 +540,25 @@
 
 ;;;; move-mothership: World -> Spaceship
 (define (move-mothership world)
-  (local ((define mothership (world-mothership world)))
-    (if (>= (world-ticks world) 30)
-      (make-spaceship
-        (make-posn
-          (+ MSHIP-MOVE-LEN (posn-x (spaceship-position mothership)))
-          (posn-y (spaceship-position mothership)))
-        (spaceship-direction mothership)
-        (spaceship-lives mothership))
-      mothership)))
+  (local ((define mothership (world-mothership world))
+          (define ticks (world-ticks world))
+          (define posn-init (spaceship-position MSHIP-INIT)))
+    (if (or (= (spaceship-lives mothership) 0)
+                  (mothership-out-of-bounds? mothership))
+        (if (and (= (modulo ticks 30) 0)
+                 (>= ticks 30))
+          (make-spaceship
+            (make-posn
+              (posn-x posn-init)
+              (posn-y posn-init)) 'right 1)
+          (make-spaceship
+            (make-posn
+              (posn-x posn-init)
+              (posn-y posn-init)) 'right 0))
+        (make-spaceship
+          (make-posn
+            (+ MSHIP-MOVE-LEN (posn-x (spaceship-position mothership)))
+            (posn-y posn-init)) 'right 1))))
 
 ;;;; Tests
 (check-expect (move-spaceship
@@ -790,7 +848,7 @@
                               invaders-updated
                               mothership-is-hit)
                 (+ 1 (world-ticks world))
-                (move-mothership world)))))
+                (mothership-step world mothership-is-hit)))))
 
 ;;;; update-score: Score LoF<Invader> LoF<Invader> Boolean -> Score
 (define (update-score old-score invaders-old invaders-new mothership-is-hit)
@@ -864,6 +922,13 @@
     ;;;; SBullet -> Boolean
     (lambda (sb) (sbullet-hits-invader? sb (spaceship-position mothership)))
     sbullets))
+
+
+;;;; mothership-step: World Boolean -> Spaceship
+(define (mothership-step world mothership-is-hit)
+  (if mothership-is-hit
+    MSHIP-INIT
+    (move-mothership world)))
 
 ;;;; Data Definition
 ;; A BulletsOrInvaders is a LoF<Posn>
@@ -962,6 +1027,28 @@
 (check-expect (bullet-out-of-bounds? BULLET-10-LO-IN) #false)
 (check-expect (bullet-out-of-bounds? BULLET-10-LO-OUT) #true)
 
+
+;;;; Signature
+;; mothership-out-of-bounds?: Spaceship -> Boolean
+
+;;;; Purpose
+;; GIVEN: a mothership
+;; RETURNS: if the mothership has moved out of bounds
+
+(define (mothership-out-of-bounds? mothership)
+  (>= (+ (posn-x (spaceship-position mothership))
+         (/ INVADER-LENGTH 2)) CANVAS-WIDTH))
+
+;;;; Tests
+(define MSHIP-IN (make-spaceship 
+                  (make-posn
+                   (- CANVAS-WIDTH (/ INVADER-LENGTH 2) 1) 20) 'left MAX-LIVES))
+(define MSHIP-OUT (make-spaceship 
+                  (make-posn
+                   (- CANVAS-WIDTH (/ INVADER-LENGTH 2)) 20) 'left MAX-LIVES))
+(check-expect (mothership-out-of-bounds? MSHIP-IN) #f)
+(check-expect (mothership-out-of-bounds? MSHIP-OUT) #t)
+
 ;;;; Signature
 ;; remove-bullets-out-of-bounds: Bullets -> Bullets
 
@@ -1053,8 +1140,9 @@
 ;;;; Tests
 (check-expect (invaders-fire 15 BULLETS-AFT INVADERS-4-9) BULLETS-AFT)
 (check-expect (invaders-fire 0 BULLETS-AFT INVADERS-4-9) BULLETS-AFT)
-(check-random (invaders-fire 1 BULLETS-AFT INVADERS-4-9)
-              (cons (invader-at INVADERS-4-9 (random 36)) BULLETS-AFT))
+; (check-random (invaders-fire 1 BULLETS-AFT INVADERS-4-9)
+;               (cons (invader-at INVADERS-4-9 (random 36)) BULLETS-AFT))
+; TODO: comment out
 
 ;;;; Signature
 ;; bullet-hits-spaceship?: Spaceship Bullet -> Boolean
@@ -1139,8 +1227,8 @@
 (define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-INIT empty empty MIN-SCORE TICK-ZERO MSHIP-INIT))
 (define WORLD-END (make-world INVADERS-4-9 SPACESHIP-DEAD empty empty MIN-SCORE TICK-ZERO MSHIP-INIT))
 
-; (big-bang WORLD-INIT
-;           (to-draw draw-world)
-;           (on-tick world-step 0.1)
-;           (on-key key-handler)
-;           (stop-when end-game?))
+(big-bang WORLD-INIT
+          (to-draw draw-world)
+          (on-tick world-step 0.1)
+          (on-key key-handler)
+          (stop-when end-game?))
