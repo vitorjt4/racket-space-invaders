@@ -820,9 +820,10 @@
             (filter-sbullets-and-invaders-to-be-removed 
                  world))
           (define sbullets
-            (remove-sbullets-or-invaders-after-hit
-                    (move-sbullets (world-sbullets world))
-                    remove-lst))
+            (move-sbullets
+              (remove-sbullets-or-invaders-after-hit
+                    (world-sbullets world)
+                    remove-lst)))
           (define mothership-is-hit
             (mothership-is-hit? sbullets (world-mothership world)))
           (define spaceship
@@ -955,14 +956,20 @@
           (sbullet-hits-invader? sb (spaceship-position mothership)))) sbullets)
     (filter (lambda (i) (invader-is-hit? sbullets i)) invaders))))
 
+(define WORLD-TEST-FILTER 
+  (make-world (list POSN-1 POSN-3 POSN-4)  ;; invaders
+              (make-spaceship (make-posn 0 0) 'left MAX-LIVES)
+              (list POSN-4 POSN-3 POSN-2)  ;; sbulltes
+              (list (make-posn 0 0)) MIN-SCORE TICK-ZERO 
+              (make-spaceship POSN-2 'left MAX-LIVES)))
+
 (define LoPSN-3 (list POSN-1 POSN-2 POSN-3 POSN-4))
 (define LoPSN-4 (list POSN-2 POSN-3 POSN-4 POSN-5))
 (define LoPSN-5 (list POSN-2 POSN-3 POSN-4 POSN-2 POSN-3 POSN-4))
 
 ;;;; Tests
-; (check-expect (filter-sbullets-and-invaders-to-be-removed LoPSN-3 LoPSN-4) 
-;               LoPSN-5)
-;; TODO: Fix this test after changing signature
+(check-expect (filter-sbullets-and-invaders-to-be-removed WORLD-TEST-FILTER)
+              (list POSN-4 POSN-3 POSN-2 POSN-3 POSN-4))
 
 ;;;; Signature
 ;; lop-contains-posn?: LoF<Posn> Posn -> Boolean
@@ -1002,8 +1009,10 @@
     sbullets-or-invaders))
 
 ;;;; Tests
-(check-expect (remove-sbullets-or-invaders-after-hit LoPSN-3 LoPSN-5) 
-              (list POSN-1))
+(check-expect (remove-sbullets-or-invaders-after-hit 
+                (list POSN-4 POSN-3 POSN-2) 
+                (list POSN-4 POSN-3 POSN-2 POSN-3 POSN-4)) 
+                empty)
 
 ;;;; Signature
 ;; bullet-out-of-bounds?: Bullet -> Boolean
