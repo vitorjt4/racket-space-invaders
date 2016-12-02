@@ -5,6 +5,10 @@
 (require 2htdp/image)
 (require 2htdp/universe)
 
+(define ZERO 0)
+(define ONE 1)
+(define TWO 2)
+(define TEXT-SIZE 28)
 (define SSHIP-MOVE-UNIT 10)
 (define ROW-NUM-INVADER 4)
 (define COL-NUM-INVADER 9)
@@ -28,7 +32,9 @@
 (define MIN-LIVES 0)
 (define MIN-SCORE 0)
 (define SCORE-HIT-INVDR 5)
-(define TICK-ZERO 0)
+(define TICK-O 0)
+(define TICK-10 10)
+(define TICK-3O 30)
 (define TOP-LEFT (make-posn 20 20))
 (define MSHIP-RECT (rectangle INVADER-LENGTH INVADER-LENGTH 'solid "purple"))
 (define MSHIP-MOVE-LEN 3)
@@ -181,10 +187,10 @@
 (define SPACESHIP-300-10-left (make-spaceship (make-posn 300 10) 'left MAX-LIVES-MSHIP))
 (define WORLD-TEST-DRAW-MSHIP-INIT
   (make-world (list POSN-50-100) SPACESHIP-300-10-left 
-              (list POSN-50-40) (list POSN-250-50) MIN-SCORE TICK-ZERO MSHIP-INIT))
+              (list POSN-50-40) (list POSN-250-50) MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-DRAW-MSHIP-APPEAR
   (make-world (list POSN-50-100) SPACESHIP-300-10-left 
-              (list POSN-50-40) (list POSN-250-50) MIN-SCORE TICK-ZERO MSHIP-APPEAR))
+              (list POSN-50-40) (list POSN-250-50) MIN-SCORE TICK-0 MSHIP-APPEAR))
 
 ;;;; Signature
 ;; first-x: Natural -> Real
@@ -194,7 +200,7 @@
 ;; RETURNS: the appropriate x coordinate value for the first invader in a row
 
 (define (first-x cols)
-  (/ (- CANVAS-WIDTH (* (- cols 1) 2 INVADER-LENGTH)) 2))
+  (/ (- CANVAS-WIDTH (* (- cols ONE) TWO INVADER-LENGTH)) TWO))
 
 ;;;; Tests
 (check-expect (first-x 9) 25)
@@ -209,11 +215,11 @@
 
 (define (invader-cons-col x y cols)
   (cond
-    [(= cols 0)	empty]
+    [(= cols ZERO)	empty]
     [else (cons 
            (make-posn x y) 
            (invader-cons-col 
-            (+ x (* 2 INVADER-LENGTH)) y (- cols 1)))]))
+            (+ x (* TWO INVADER-LENGTH)) y (- cols ONE)))]))
 
 ;;;; Tests
 (check-expect (invader-cons-col 10 10 2) (list (make-posn 10 10)
@@ -229,13 +235,13 @@
 
 (define (invader-cons-row y rows cols)
   (cond
-    [(= rows 0) empty]
+    [(= rows ZERO) empty]
     [else (append 
            (invader-cons-col 
             (first-x cols) y cols) 
            (invader-cons-row 
             (+ y INVADER-LENGTH GAP-BETWEEN-ROWS) 
-            (- rows 1)
+            (- rows ONE)
             cols))]))
 
 ;;;; Tests
@@ -254,14 +260,14 @@
 
 (define (draw-score score img)
   (place-image
-   (text (number->string score) 20 "black")
+   (text (number->string score) TEXT-SIZE "black")
    (posn-x TOP-CENTER)
    (posn-y TOP-CENTER)
    img))
 
 ;;;; Tests
 (check-expect (draw-score 10 BACKGROUND)
-              (place-image (text "10" 20 "black")
+              (place-image (text "10" TEXT-SIZE "black")
                            (posn-x TOP-CENTER)
                            (posn-y TOP-CENTER)
                            BACKGROUND))
@@ -278,7 +284,7 @@
                                        (- CANVAS-HEIGHT 30)))
 (define (draw-lives spaceship img)
   (place-image
-   (text (number->string (spaceship-lives spaceship)) 28 "red")
+   (text (number->string (spaceship-lives spaceship)) TEXT-SIZE "red")
    (posn-x BOTTOM-RIGHT-CORNER)
    (posn-y BOTTOM-RIGHT-CORNER)
    img))
@@ -287,7 +293,7 @@
 ;;;; Tests
 (check-expect (draw-lives SPACESHIP-DEAD BACKGROUND)
               (place-image
-               (text "0" 28 "red")
+               (text "0" TEXT-SIZE "red")
                (posn-x BOTTOM-RIGHT-CORNER)
                (posn-y BOTTOM-RIGHT-CORNER)
                BACKGROUND))
@@ -426,7 +432,7 @@
                                                  (world-ibullets world) 
                                                  (draw-lives (world-spaceship world)
                                                              (draw-score (world-score world)
-                                                                         (if (= 0 (spaceship-lives (world-mothership world)))
+                                                                         (if (= ZERO (spaceship-lives (world-mothership world)))
                                                                              BACKGROUND
                                                                              (draw-mothership (world-mothership world) BACKGROUND)))))))))
 
@@ -473,7 +479,7 @@
 ;; RETURNS: true if the spaceship reaches the left corner, false otherwise
 
 (define (spaceship-reach-left-corner? spaceship)
-  (<= (- (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L 2)) 0))
+  (<= (- (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L TWO)) ZERO))
 
 ;;;; Tests
 (check-expect 
@@ -491,7 +497,7 @@
 ;; RETURNS: true if the spaceship reaches the right corner, false otherwise
 
 (define (spaceship-reach-right-corner? spaceship)
-  (>= (+ (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L 2)) 
+  (>= (+ (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L TWO)) 
       CANVAS-WIDTH))
 
 ;;;; Tests
@@ -584,16 +590,16 @@
   (local ((define mothership (world-mothership world))
           (define ticks (world-ticks world))
           (define posn-init (spaceship-position MSHIP-INIT)))
-    (if (or (= (spaceship-lives mothership) 0)  ;; mothership is hit or 
+    (if (or (= (spaceship-lives mothership) ZERO)  ;; mothership is hit or 
             (mothership-out-of-bounds? mothership))  ;; is out of bounds
-        (if (and (= (modulo ticks 30) 0)
-                 (>= ticks 30))
+        (if (and (= (modulo ticks TICK-3O) ZERO)
+                 (>= ticks TICK-3O))
             MSHIP-APPEAR                    ;; reappears after 30 ticks
             MSHIP-DEAD)                     ;; remains dead
         (make-spaceship       ;; if not hit, move one step to the right
          (make-posn
           (+ MSHIP-MOVE-LEN (posn-x (spaceship-position mothership)))
-          (posn-y posn-init)) 'right 1))))
+          (posn-y posn-init)) 'right ONE))))
 
 ;;;; Tests
 (check-expect 
@@ -637,13 +643,13 @@
         (make-spaceship  ;; if hit, re-init the spaceship with a life less
          (spaceship-position  SPACESHIP-INIT)
          (spaceship-direction SPACESHIP-INIT)
-         (- (spaceship-lives spaceship-orig) 1))
+         (- (spaceship-lives spaceship-orig) ONE))
         (if (not mothership-is-hit)
             moved-spaceship
             (make-spaceship
              (spaceship-position moved-spaceship)
              (spaceship-direction moved-spaceship)
-             (+ (spaceship-lives spaceship-orig) 1))))))
+             (+ (spaceship-lives spaceship-orig) ONE))))))
 
 ;;;; Tests
 (check-expect ;; case 1: spaceship, mothership not hit
@@ -652,7 +658,7 @@
               (make-spaceship (make-posn 50 0) 'right MAX-LIVES-SSHIP)
               (list POSN-2)  ;; sbulltes
               (list POSN-3)  ;; ibullets
-              MIN-SCORE TICK-ZERO 
+              MIN-SCORE TICK-0 
               (make-spaceship POSN-4 'right MAX-LIVES-MSHIP))
   #f)
  (make-spaceship (make-posn (+ 50 SSHIP-MOVE-UNIT) 0) 'right MAX-LIVES-SSHIP))
@@ -663,7 +669,7 @@
               (make-spaceship (make-posn 50 0) 'right MAX-LIVES-SSHIP)
               (list POSN-2)  ;; sbulltes
               (list (make-posn 50 0))  ;; ibullets
-              MIN-SCORE TICK-ZERO 
+              MIN-SCORE TICK-0 
               (make-spaceship POSN-4 'right MAX-LIVES-MSHIP))
   #f)
  (make-spaceship (spaceship-position SPACESHIP-INIT)
@@ -676,7 +682,7 @@
               (make-spaceship (make-posn 50 0) 'right MAX-LIVES-SSHIP)
               (list POSN-2)  ;; sbulltes
               (list (make-posn 100 0))  ;; ibullets
-              MIN-SCORE TICK-ZERO 
+              MIN-SCORE TICK-0 
               (make-spaceship POSN-2 'right MAX-LIVES-MSHIP))
   #t)
  (make-spaceship (make-posn (+ 50 SSHIP-MOVE-UNIT) 0) 'right (+ 1 MAX-LIVES-SSHIP)))
@@ -771,8 +777,8 @@
 (define (invaders-step world)
   (local ((define ticks (world-ticks world))
           (define invaders (world-invaders world)))
-    (if (and (not (= 0 ticks))
-             (= 0 (modulo ticks 10)))
+    (if (and (not (= TICK-O ticks))
+             (= ZERO (modulo ticks TICK-10)))
         (move-invaders invaders)
         invaders)))
 
@@ -784,7 +790,7 @@
               empty ;; sbulltes
               empty  ;; ibullets
               MIN-SCORE
-              TICK-ZERO 
+              TICK-0 
               MSHIP-INIT))
  (list (make-posn 10 10) (make-posn 20 10)))
 
@@ -795,7 +801,7 @@
               empty ;; sbulltes
               empty  ;; ibullets
               MIN-SCORE
-              (+ 10 TICK-ZERO)
+              (+ 10 TICK-0)
               MSHIP-INIT))
  (list (make-posn 10 (+ 10 INVADER-LENGTH))
        (make-posn 20 (+ 10 INVADER-LENGTH))))
@@ -815,43 +821,43 @@
   (make-world INVADERS-4-9 ;; spaceship reach right corner
               (make-spaceship (make-posn (- 450 15) 200) 'left MAX-LIVES-MSHIP)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO MSHIP-INIT))
+              (list (make-posn 9 9)) MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-KH-1-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn (- 450 15 10) 200) 'left MAX-LIVES-MSHIP)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO MSHIP-INIT))
+              (list (make-posn 9 9)) MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-KH-2-BFR 
   (make-world INVADERS-4-9 ;; spaceship reach left corner
               (make-spaceship (make-posn 15 200) 'left MAX-LIVES-MSHIP)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO MSHIP-INIT))
+              (list (make-posn 9 9)) MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-KH-2-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn (+ 15 10) 200) 'right MAX-LIVES-MSHIP)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO MSHIP-INIT))
+              (list (make-posn 9 9)) MIN-SCORE TICK-0 MSHIP-INIT))
 
 (define WORLD-TEST-KH-3-BFR 
   (make-world INVADERS-4-9
               (make-spaceship (make-posn (- 450 10) 200) 'left MAX-LIVES-MSHIP)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO MSHIP-INIT))
+              (list (make-posn 9 9)) MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-KH-3-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn (- 450 10) 200) 'right MAX-LIVES-MSHIP)
               (list (make-posn 0 0))
-              (list (make-posn 9 9)) MIN-SCORE TICK-ZERO MSHIP-INIT))
+              (list (make-posn 9 9)) MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-KH-4-BFR 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn 0 0) 'right MAX-LIVES-MSHIP)
               empty
-              empty MIN-SCORE TICK-ZERO MSHIP-INIT))
+              empty MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-KH-4-AFT 
   (make-world INVADERS-4-9 
               (make-spaceship (make-posn 0 0) 'right MAX-LIVES-MSHIP)
               (list (make-posn 0 0))
-              empty MIN-SCORE TICK-ZERO MSHIP-INIT))
+              empty MIN-SCORE TICK-0 MSHIP-INIT))
 
 
 ;;;; Function Definition
@@ -984,7 +990,7 @@
                                invaders
                                invaders-updated
                                mothership-is-hit)
-                 (+ 1 (world-ticks world))
+                 (+ ONE (world-ticks world))
                  (mothership-step world mothership-is-hit)))))
 
 ;;;; Tests
@@ -994,13 +1000,13 @@
    (list (make-posn 10 10))
    (make-spaceship (make-posn 50 0) 'right MAX-LIVES-SSHIP)
    empty
-   empty MIN-SCORE TICK-ZERO 
+   empty MIN-SCORE TICK-0 
    (make-spaceship TOP-LEFT 'right MAX-LIVES-MSHIP)))
  (make-world 
   (list (make-posn 10 10))
   (make-spaceship (make-posn (+ 50 SSHIP-MOVE-UNIT) 0) 'right MAX-LIVES-SSHIP)
   empty
-  empty MIN-SCORE (+ 1 TICK-ZERO)
+  empty MIN-SCORE (+ 1 TICK-0)
   (make-spaceship 
    (make-posn (+ (posn-x TOP-LEFT) MSHIP-MOVE-LEN)
               (posn-y TOP-LEFT))
@@ -1071,11 +1077,11 @@
 (define (sbullet-hits-invader? sbullet invader)
   (and
    (< (- (posn-y sbullet)  BULLET-RADIUS)
-      (+ (posn-y invader) (/ INVADER-LENGTH 2)))
+      (+ (posn-y invader) (/ INVADER-LENGTH TWO)))
    (> (+ (posn-x sbullet)  BULLET-RADIUS)
-      (- (posn-x invader) (/ INVADER-LENGTH 2)))
+      (- (posn-x invader) (/ INVADER-LENGTH TWO)))
    (< (- (posn-x sbullet)  BULLET-RADIUS)
-      (+ (posn-x invader) (/ INVADER-LENGTH 2)))))
+      (+ (posn-x invader) (/ INVADER-LENGTH TWO)))))
 
 ;;;; Signature
 ;; sbullet-hits-invaders?: Bullet Invaders -> Boolean
@@ -1159,7 +1165,7 @@
    (list (make-posn 10 10))
    (make-spaceship (make-posn 50 0) 'right MAX-LIVES-SSHIP)
    (list TOP-LEFT)
-   empty MIN-SCORE TICK-ZERO
+   empty MIN-SCORE TICK-0
    (make-spaceship TOP-LEFT 'right MAX-LIVES-MSHIP)) #t)
  MSHIP-INIT)
 ; test for another case is reflected in
@@ -1195,7 +1201,7 @@
   (make-world (list POSN-1 POSN-3 POSN-4)  ;; invaders
               (make-spaceship (make-posn 0 0) 'left MAX-LIVES-MSHIP)
               (list POSN-4 POSN-3 POSN-2)  ;; sbulltes
-              (list (make-posn 0 0)) MIN-SCORE TICK-ZERO 
+              (list (make-posn 0 0)) MIN-SCORE TICK-0 
               (make-spaceship POSN-2 'left MAX-LIVES-MSHIP)))
 
 (define LoPSN-3 (list POSN-1 POSN-2 POSN-3 POSN-4))
@@ -1258,7 +1264,7 @@
 (define BULLET-10-LO-OUT (make-posn 10 603))
 
 (define (bullet-out-of-bounds? bullet)
-  (or (<= (+ (posn-y bullet) BULLET-RADIUS) 0)
+  (or (<= (+ (posn-y bullet) BULLET-RADIUS) ZERO)
       (>= (- (posn-y bullet) BULLET-RADIUS) CANVAS-HEIGHT)))
 
 ;;;; Tests
@@ -1277,7 +1283,7 @@
 
 (define (mothership-out-of-bounds? mothership)
   (>= (+ (posn-x (spaceship-position mothership))
-         (/ INVADER-LENGTH 2)) CANVAS-WIDTH))
+         (/ INVADER-LENGTH TWO)) CANVAS-WIDTH))
 
 ;;;; Tests
 (define MSHIP-IN (make-spaceship 
@@ -1320,10 +1326,10 @@
 
 (define WORLD-TEST-BFR (make-world empty 
                                    (make-spaceship POSN-2 'left MAX-LIVES-MSHIP) 
-                                   BULLETS-BFR BULLETS-BFR MIN-SCORE TICK-ZERO MSHIP-INIT))
+                                   BULLETS-BFR BULLETS-BFR MIN-SCORE TICK-0 MSHIP-INIT))
 (define WORLD-TEST-AFT (make-world empty 
                                    (make-spaceship POSN-2 'left MAX-LIVES-MSHIP) 
-                                   BULLETS-AFT BULLETS-AFT MIN-SCORE TICK-ZERO MSHIP-INIT))
+                                   BULLETS-AFT BULLETS-AFT MIN-SCORE TICK-0 MSHIP-INIT))
 
 (define (remove-bullets-out-of-bounds-world world)
   (make-world
@@ -1350,8 +1356,8 @@
 (define (invader-at invaders index)
   (cond
     [(empty? invaders) empty]
-    [(= 0 index) (first invaders)]
-    [else (invader-at (rest invaders) (- index 1))]))
+    [(= ZERO index) (first invaders)]
+    [else (invader-at (rest invaders) (- index ONE))]))
 
 ;;;; Tests
 (check-expect (invader-at LoPSN-2 2) POSN-50-300)
@@ -1368,12 +1374,12 @@
   (cond
     [(or 
       (> (+ (length ibullets) amount) BULLET-MAX-INVADER)
-      (< amount 1)) ibullets]
+      (< amount ONE)) ibullets]
     [else
      (cons
       (invader-at invaders (random (length invaders)))
       (invaders-fire
-       (- amount 1)
+       (- amount ONE)
        ibullets
        invaders))]))
 
@@ -1394,11 +1400,11 @@
 (define (bullet-hits-spaceship? spaceship bullet)
   (and 
    (> (+ (posn-x bullet) BULLET-RADIUS) 
-      (- (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L 2)))
+      (- (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L TWO)))
    (< (- (posn-x bullet) BULLET-RADIUS) 
-      (+ (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L 2)))
+      (+ (posn-x (spaceship-position spaceship)) (/ SPACESHIP-L TWO)))
    (> (+ (posn-y bullet) BULLET-RADIUS) 
-      (- (posn-y (spaceship-position spaceship)) (/ SPACESHIP-W 2)))))
+      (- (posn-y (spaceship-position spaceship)) (/ SPACESHIP-W TWO)))))
 
 ;;;; Tests
 (check-expect (bullet-hits-spaceship? SPACESHIP-INIT POSN-BOTTOM-MID) #true)
@@ -1466,7 +1472,7 @@
                         (/ SPACESHIP-W 2)))
 
 (define (end-game? world)
-  (or (= (spaceship-lives (world-spaceship world)) 0)
+  (or (= (spaceship-lives (world-spaceship world)) ZERO)
       (invaders-reach-btm? (world-invaders world))))
 
 ;;;; Tests
@@ -1476,8 +1482,8 @@
 
 (define POSN-BOTTOM-MID (make-posn (/ CANVAS-WIDTH 2) (- CANVAS-HEIGHT 20)))
 (define BULLETS-SPACESHIP (cons POSN-BOTTOM-MID empty))
-(define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-INIT empty empty MIN-SCORE TICK-ZERO MSHIP-INIT))
-(define WORLD-END (make-world INVADERS-4-9 SPACESHIP-DEAD empty empty MIN-SCORE TICK-ZERO MSHIP-INIT))
+(define WORLD-INIT (make-world INVADERS-4-9 SPACESHIP-INIT empty empty MIN-SCORE TICK-0 MSHIP-INIT))
+(define WORLD-END (make-world INVADERS-4-9 SPACESHIP-DEAD empty empty MIN-SCORE TICK-0 MSHIP-INIT))
 
 (big-bang WORLD-INIT
           (to-draw draw-world)
