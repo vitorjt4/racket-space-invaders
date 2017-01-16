@@ -8,7 +8,9 @@ It was firstly assigned after we were introduced to lists in Racket. And the pro
 The specifications (assignment instructions) can be found 
 
 1. [Here](http://www.ccs.neu.edu/home/skotthe/classes/cs5001/Fall/2016/module4.html) in the **Assignment 6** tag, and
-2. [Here](http://www.ccs.neu.edu/home/skotthe/classes/cs5001/Fall/2016/module5.html) in the **Assignment 8** tag.
+2. [Here](http://www.ccs.neu.edu/home/skotthe/classes/cs5001/Fall/2016/module5.html) in the **Assignment 8** tag
+
+or, you may go to the **[specifications](https://github.com/jeremylinlin/racket-space-invaders/tree/master/specifications)** directory and see the screenshots
 
 ## To start the program:
  - either start the program from your terminal `$ racket space-invader.rkt`
